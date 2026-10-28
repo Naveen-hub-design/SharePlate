@@ -1,4 +1,3 @@
-import datetime
 import secrets
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -9,6 +8,7 @@ from backend.models.donation_request import DonationRequest
 from backend.services.notification_service import NotificationService
 from backend.services.audit_service import AuditService
 from backend.utils.decorators import role_required, verified_organization_required
+from backend.utils.time_utils import utc_now
 
 request_bp = Blueprint("requests", __name__, url_prefix="/api/v1/requests")
 
@@ -23,27 +23,34 @@ def generate_secure_otp() -> str:
 def create_donation_request(donation_id: int):
     """
     Receiver requests to claim all or partial portions of an available donation.
-    Enforces atomic checking of remaining portions using database transactions.
+    Enforces atomic checking of remaining portions using database transactions with row-level locking.
     """
     user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
     org = user.organization
+    if not org:
+        return jsonify({"error": "No recipient organization found for user"}), 400
     
     data = request.get_json() or {}
-    requested_portions = data.get("requested_portions")
-    request_notes = data.get("request_notes", "").strip()
+    requested_portions = data.get("requested_portions") or data.get("requested_quantity")
+    request_notes = (data.get("request_notes") or data.get("requester_notes") or "").strip()
     
     if not requested_portions or int(requested_portions) <= 0:
         return jsonify({"error": "Requested portions must be a positive integer."}), 400
     requested_portions = int(requested_portions)
     
     # Atomic transaction with row locking
-    with db.session.begin_nested():
-        donation = Donation.query.with_for_update().get(donation_id)
+    try:
+        donation = db.session.get(Donation, donation_id, with_for_update=True)
         if not donation:
+            db.session.rollback()
             return jsonify({"error": "Donation not found"}), 404
             
         if donation.status != "PUBLISHED":
+            db.session.rollback()
             return jsonify({"error": f"Cannot claim this donation. Status is '{donation.status}'."}), 400
             
         if donation.is_expired:
@@ -52,6 +59,7 @@ def create_donation_request(donation_id: int):
             return jsonify({"error": "This donation collection window has expired."}), 400
             
         if requested_portions > donation.remaining_portions:
+            db.session.rollback()
             return jsonify({
                 "error": f"Requested portions ({requested_portions}) exceed remaining available portions ({donation.remaining_portions})."
             }), 400
@@ -63,6 +71,7 @@ def create_donation_request(donation_id: int):
             status="PENDING"
         ).first()
         if existing_pending:
+            db.session.rollback()
             return jsonify({"error": "You already have a pending request for this donation."}), 409
             
         donation_req = DonationRequest(
@@ -75,8 +84,10 @@ def create_donation_request(donation_id: int):
             collection_deadline=donation.collection_deadline
         )
         db.session.add(donation_req)
-        
-    db.session.commit()
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        raise e
     
     # Notify donor
     NotificationService.send_notification(
@@ -105,7 +116,9 @@ def create_donation_request(donation_id: int):
 def get_my_requests():
     """Returns requests for the logged-in receiver or donor."""
     user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
     
     if user.role == "RECEIVER":
         requests_list = DonationRequest.query.filter_by(receiver_id=user.id).order_by(DonationRequest.created_at.desc()).all()
@@ -129,18 +142,27 @@ def approve_request(request_id: int):
     generates secure 6-digit handover OTP, and notifies receiver.
     """
     user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
     
-    with db.session.begin_nested():
-        req = DonationRequest.query.with_for_update().get(request_id)
+    try:
+        req = db.session.get(DonationRequest, request_id, with_for_update=True)
         if not req:
-            return jsonify({"error": "Request not found"}), 404
+            db.session.rollback()
+            return jsonify({"error": "Request not found."}), 404
             
-        donation = Donation.query.with_for_update().get(req.donation_id)
+        donation = db.session.get(Donation, req.donation_id, with_for_update=True)
+        if not donation:
+            db.session.rollback()
+            return jsonify({"error": "Associated donation not found."}), 404
+            
         if donation.donor_id != user.id and user.role != "ADMIN":
-            return jsonify({"error": "Forbidden"}), 403
+            db.session.rollback()
+            return jsonify({"error": "Forbidden: You are not the donor for this donation."}), 403
             
         if req.status != "PENDING":
+            db.session.rollback()
             return jsonify({"error": f"Cannot approve request with status '{req.status}'."}), 400
             
         if donation.is_expired:
@@ -151,6 +173,7 @@ def approve_request(request_id: int):
             return jsonify({"error": "Donation collection deadline has passed."}), 400
             
         if req.requested_portions > donation.remaining_portions:
+            db.session.rollback()
             return jsonify({
                 "error": f"Cannot approve: requested portions ({req.requested_portions}) exceed remaining available portions ({donation.remaining_portions})."
             }), 400
@@ -163,10 +186,12 @@ def approve_request(request_id: int):
         pickup_code = generate_secure_otp()
         req.status = "APPROVED"
         req.pickup_code = pickup_code
-        req.approved_at = datetime.datetime.utcnow()
+        req.approved_at = utc_now()
         req.approved_by = user.id
-        
-    db.session.commit()
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        raise e
     
     # Notify receiver
     NotificationService.send_notification(
@@ -195,18 +220,23 @@ def approve_request(request_id: int):
 @role_required("DONOR", "ADMIN")
 def reject_request(request_id: int):
     user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
     
     data = request.get_json() or {}
     reason = data.get("rejection_reason", "Unable to fulfill this request.").strip()
     
-    req = DonationRequest.query.get(request_id)
+    req = db.session.get(DonationRequest, request_id)
     if not req:
         return jsonify({"error": "Request not found"}), 404
         
-    donation = Donation.query.get(req.donation_id)
+    donation = db.session.get(Donation, req.donation_id)
+    if not donation:
+        return jsonify({"error": "Associated donation not found"}), 404
+        
     if donation.donor_id != user.id and user.role != "ADMIN":
-        return jsonify({"error": "Forbidden"}), 403
+        return jsonify({"error": "Forbidden: You are not the donor for this listing."}), 403
         
     if req.status != "PENDING":
         return jsonify({"error": f"Cannot reject request with status '{req.status}'."}), 400
@@ -238,10 +268,12 @@ def cancel_request(request_id: int):
     If already approved, transactionally returns reserved portions to remaining available pool.
     """
     user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
     
     with db.session.begin_nested():
-        req = DonationRequest.query.with_for_update().get(request_id)
+        req = db.session.get(DonationRequest, request_id, with_for_update=True)
         if not req:
             return jsonify({"error": "Request not found"}), 404
             
@@ -251,7 +283,9 @@ def cancel_request(request_id: int):
         if req.status not in ["PENDING", "APPROVED"]:
             return jsonify({"error": f"Cannot cancel request with status '{req.status}'."}), 400
             
-        donation = Donation.query.with_for_update().get(req.donation_id)
+        donation = db.session.get(Donation, req.donation_id, with_for_update=True)
+        if not donation:
+            return jsonify({"error": "Associated donation not found"}), 404
         
         if req.status == "APPROVED":
             # Release reservation back to available portions

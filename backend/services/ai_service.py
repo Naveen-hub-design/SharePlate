@@ -23,9 +23,16 @@ class AIServiceAdapter:
         Analyzes a food image to suggest category, draft description, and visual tags.
         NOTE: Explicitly includes a disclaimer that food safety, freshness, and allergens cannot be inferred.
         """
-        provider = current_app.config.get("AI_PROVIDER", "fallback")
-        openai_key = current_app.config.get("OPENAI_API_KEY", "")
-        gemini_key = current_app.config.get("GEMINI_API_KEY", "")
+        provider = "fallback"
+        openai_key = ""
+        gemini_key = ""
+        try:
+            if current_app:
+                provider = current_app.config.get("AI_PROVIDER", "fallback")
+                openai_key = current_app.config.get("OPENAI_API_KEY", "")
+                gemini_key = current_app.config.get("GEMINI_API_KEY", "")
+        except RuntimeError:
+            pass
         
         # If cloud provider selected and key present, attempt provider call
         if provider == "openai" and openai_key:

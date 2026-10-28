@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+  --color-cream-50: #FDFBF7;
+  --color-cream-100: #FAF7F2;
+  --color-cream-200: #F4EFE6;
+  --color-cream-300: #EAE3D2;
+
+  --color-forest-50: #EBF5F0;
+  --color-forest-100: #D3EBDD;
+  --color-forest-200: #A8D8BD;
+  --color-forest-500: #52B788;
+  --color-forest-600: #40916C;
+  --color-forest-700: #2D6A4F;
+  --color-forest-800: #1B4332;
+  --color-forest-900: #0D281E;
+
+  --color-amber-500: #F59E0B;
+  --color-amber-600: #D97706;
+  --color-amber-700: #B45309;
+}
+
+:root {
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #FAF7F2;
+  color: #1C1917;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF7F2;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Leaflet container fix */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.75rem;
+  z-index: 10;
+}

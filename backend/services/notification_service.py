@@ -2,6 +2,7 @@ import datetime
 from flask import request
 from backend.extensions import db
 from backend.models.notification import Notification
+from backend.utils.time_utils import utc_now
 
 class NotificationService:
     @staticmethod
@@ -16,7 +17,7 @@ class NotificationService:
         Creates and persists an in-app notification.
         Prevents duplicate rapid notifications within 1 minute with identical title and user.
         """
-        one_min_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=1)
+        one_min_ago = utc_now() - datetime.timedelta(minutes=1)
         existing = Notification.query.filter(
             Notification.user_id == user_id,
             Notification.title == title,

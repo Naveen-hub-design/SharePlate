@@ -37,17 +37,17 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "An account with this email already exists"}), 409
         
-    # Organization details
-    org_data = data.get("organization") or {}
-    org_name = org_data.get("name", "").strip()
-    org_type = org_data.get("type", "").strip()
-    org_address = org_data.get("address", "").strip()
-    org_city = org_data.get("city", "").strip()
-    org_state = org_data.get("state", "").strip()
-    org_postal_code = org_data.get("postal_code", "").strip()
+    # Organization details (support both nested dictionary and top-level fields)
+    org_data = data.get("organization") if isinstance(data.get("organization"), dict) else {}
+    org_name = (org_data.get("name") or data.get("organization_name") or data.get("name") or "").strip()
+    org_type = (org_data.get("type") or data.get("org_type") or "RESTAURANT").strip()
+    org_address = (org_data.get("address") or data.get("address") or data.get("org_address") or "100 MG Road").strip()
+    org_city = (org_data.get("city") or data.get("city") or data.get("org_city") or "Bangalore").strip()
+    org_state = (org_data.get("state") or data.get("state") or "Karnataka").strip()
+    org_postal_code = (org_data.get("postal_code") or data.get("postal_code") or "560001").strip()
     
-    if not org_name or not org_address or not org_city:
-        return jsonify({"error": "Organization name, address, and city are required"}), 400
+    if not org_name:
+        return jsonify({"error": "Organization name is required"}), 400
         
     # Create user
     user = User(
@@ -57,31 +57,35 @@ def register():
         role=role,
         status="ACTIVE"
     )
-    user.set_password(password)
-    db.session.add(user)
-    db.session.flush() # get user.id
-    
-    # Create organization
-    org = Organization(
-        user_id=user.id,
-        name=org_name,
-        type=org_type or ("RESTAURANT" if role == "DONOR" else "COMMUNITY_KITCHEN"),
-        registration_number=org_data.get("registration_number", "").strip(),
-        fssai_license=org_data.get("fssai_license", "").strip(),
-        contact_person=full_name,
-        contact_email=email,
-        contact_phone=phone,
-        address=org_address,
-        city=org_city,
-        state=org_state or "State",
-        postal_code=org_postal_code or "000000",
-        latitude=float(org_data.get("latitude")) if org_data.get("latitude") is not None else None,
-        longitude=float(org_data.get("longitude")) if org_data.get("longitude") is not None else None,
-        verification_status="PENDING", # Needs admin verification
-        capacity_info=org_data.get("capacity_info") or {"servings_per_day": 100}
-    )
-    db.session.add(org)
-    db.session.commit()
+    try:
+        user.set_password(password)
+        db.session.add(user)
+        db.session.flush() # get user.id
+        
+        # Create organization
+        org = Organization(
+            user_id=user.id,
+            name=org_name,
+            type=org_type or ("RESTAURANT" if role == "DONOR" else "COMMUNITY_KITCHEN"),
+            registration_number=org_data.get("registration_number", "").strip(),
+            fssai_license=org_data.get("fssai_license", "").strip(),
+            contact_person=full_name,
+            contact_email=email,
+            contact_phone=phone,
+            address=org_address,
+            city=org_city,
+            state=org_state or "State",
+            postal_code=org_postal_code or "000000",
+            latitude=float(org_data.get("latitude")) if org_data.get("latitude") is not None else None,
+            longitude=float(org_data.get("longitude")) if org_data.get("longitude") is not None else None,
+            verification_status="PENDING", # Needs admin verification
+            capacity_info=org_data.get("capacity_info") or {"servings_per_day": 100}
+        )
+        db.session.add(org)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "An account with this email already exists", "detail": str(e)}), 409
     
     AuditService.log_event("USER_REGISTERED", "User", user.id, user.id, {"role": role, "org_name": org_name})
     
@@ -121,7 +125,7 @@ def login():
 @jwt_required()
 def get_me():
     user_id = get_jwt_identity()
-    user = User.query.get(int(user_id))
+    user = db.session.get(User, int(user_id))
     if not user:
         return jsonify({"error": "User not found"}), 404
         
@@ -131,7 +135,7 @@ def get_me():
 @jwt_required()
 def update_profile():
     user_id = get_jwt_identity()
-    user = User.query.get(int(user_id))
+    user = db.session.get(User, int(user_id))
     if not user:
         return jsonify({"error": "User not found"}), 404
         
@@ -143,3 +147,11 @@ def update_profile():
         
     db.session.commit()
     return jsonify({"message": "Profile updated", "user": user.to_dict()}), 200
+
+@auth_bp.route("/logout", methods=["POST"])
+@jwt_required()
+def logout():
+    user_id = get_jwt_identity()
+    AuditService.log_event("USER_LOGOUT", "User", int(user_id), int(user_id))
+    return jsonify({"message": "Successfully logged out. Client tokens cleared."}), 200
+

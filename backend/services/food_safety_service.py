@@ -1,5 +1,6 @@
 import datetime
 from typing import Dict, List, Tuple, Any
+from backend.utils.time_utils import utc_now
 
 ALLERGEN_CATALOG = [
     {"id": "gluten", "label": "Cereals containing Gluten (Wheat, Rye, Barley, Oats)"},
@@ -90,7 +91,7 @@ class FoodSafetyService:
         """
         errors = []
         warnings = []
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         
         # 1. Validate Category
         if category not in FOOD_CATEGORIES:

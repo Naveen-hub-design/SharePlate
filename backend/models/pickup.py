@@ -1,5 +1,6 @@
 import datetime
 from backend.extensions import db
+from backend.utils.time_utils import utc_now
 
 class PickupRecord(db.Model):
     __tablename__ = "pickup_records"
@@ -16,7 +17,7 @@ class PickupRecord(db.Model):
     temperature_at_collection = db.Column(db.Float, nullable=True) # Temperature check at collection
     safety_checklist_verified = db.Column(db.Boolean, default=True, nullable=False)
     
-    collected_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
+    collected_at = db.Column(db.DateTime, default=utc_now, nullable=False)
     
     # Relationships
     receiver = db.relationship("User", foreign_keys=[receiver_id])

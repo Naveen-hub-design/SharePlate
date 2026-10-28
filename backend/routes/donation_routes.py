@@ -1,6 +1,6 @@
 import datetime
-from flask import Blueprint, request, jsonify, current_app, send_from_directory
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from backend.extensions import db
 from backend.models.user import User
 from backend.models.organization import Organization
@@ -10,6 +10,7 @@ from backend.services.matching_service import haversine_distance_km
 from backend.services.audit_service import AuditService
 from backend.utils.decorators import role_required, verified_organization_required
 from backend.utils.file_storage import save_uploaded_file
+from backend.utils.time_utils import utc_now
 
 donation_bp = Blueprint("donations", __name__, url_prefix="/api/v1/donations")
 
@@ -17,14 +18,13 @@ def parse_iso_datetime(dt_str):
     if not dt_str:
         return None
     try:
-        # replace Z with +00:00 for fromisoformat compatibility
         return datetime.datetime.fromisoformat(dt_str.replace("Z", "+00:00")).replace(tzinfo=None)
     except Exception:
         return None
 
 def auto_expire_stale_donations():
     """Helper to automatically transition past-deadline published donations to EXPIRED."""
-    now = datetime.datetime.utcnow()
+    now = utc_now()
     stale_donations = Donation.query.filter(
         Donation.status.in_(["PUBLISHED", "DRAFT"]),
         Donation.collection_deadline < now
@@ -38,10 +38,12 @@ def auto_expire_stale_donations():
 @jwt_required()
 @role_required("DONOR", "ADMIN")
 def create_donation():
-    user_id = get_jwt_identity()
-    user = User.query.get(int(user_id))
+    user_id = int(get_jwt_identity())
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
     org = user.organization
-    
     if not org:
         return jsonify({"error": "No organization profile associated with this donor account"}), 400
         
@@ -65,11 +67,11 @@ def create_donation():
     except (ValueError, TypeError):
         return jsonify({"error": "Quantity and total portions must be positive numbers."}), 400
         
-    prep_time = parse_iso_datetime(data.get("preparation_time"))
+    prep_time = parse_iso_datetime(data.get("preparation_time") or data.get("cooked_or_prepared_at"))
     packaging_time = parse_iso_datetime(data.get("packaging_time"))
-    available_from = parse_iso_datetime(data.get("available_from")) or datetime.datetime.utcnow()
+    available_from = parse_iso_datetime(data.get("available_from")) or utc_now()
     deadline = parse_iso_datetime(data.get("collection_deadline"))
-    storage = data.get("storage_conditions", "AMBIENT").strip().upper()
+    storage = (data.get("storage_conditions") or data.get("storage_condition") or "AMBIENT").strip().upper()
     allergens = data.get("allergens") or []
     
     # Run FSSAI Safety Validation
@@ -100,22 +102,14 @@ def create_donation():
                 "error": "Unverified donors cannot publish public donation listings. You may save this listing as DRAFT until platform admin verification is complete.",
                 "verification_status": org.verification_status
             }), 403
-            
-    collection_address = data.get("collection_address", org.address).strip()
-    latitude = float(data.get("latitude")) if data.get("latitude") is not None else org.latitude
-    longitude = float(data.get("longitude")) if data.get("longitude") is not None else org.longitude
-    phone = data.get("donor_contact_phone", org.contact_phone or user.phone or "").strip()
-    
-    if not phone:
-        return jsonify({"error": "A donor contact phone number is required for pickup coordination."}), 400
-        
+
     donation = Donation(
         donor_id=user.id,
         organization_id=org.id,
         title=title,
         description=description,
         category=category,
-        photo_url=data.get("photo_url"),
+        photo_url=data.get("photo_url") or data.get("image_url"),
         quantity=quantity,
         unit=unit,
         total_portions=total_portions,
@@ -127,45 +121,48 @@ def create_donation():
         collection_deadline=deadline,
         allergens=allergens,
         storage_conditions=storage,
-        food_safety_notes=data.get("food_safety_notes", "").strip(),
-        donor_contact_phone=phone,
-        collection_address=collection_address,
-        latitude=latitude,
-        longitude=longitude,
+        food_safety_notes=(data.get("food_safety_notes") or data.get("special_handling_instructions") or "").strip(),
+        donor_contact_phone=(data.get("donor_contact_phone") or user.phone or org.contact_phone or "+91 99999 00000").strip(),
+        collection_address=(data.get("collection_address") or data.get("address") or org.address).strip(),
+        latitude=float(data.get("latitude")) if data.get("latitude") is not None else org.latitude,
+        longitude=float(data.get("longitude")) if data.get("longitude") is not None else org.longitude,
         status=target_status
     )
     
     db.session.add(donation)
     db.session.commit()
     
-    AuditService.log_event(
-        "DONATION_CREATED",
-        "Donation",
-        donation.id,
-        user.id,
-        {"status": target_status, "category": category, "portions": total_portions}
-    )
+    AuditService.log_event("DONATION_CREATED", "Donation", donation.id, user.id, {"status": target_status, "portions": total_portions})
     
     return jsonify({
-        "message": f"Donation listing created successfully with status '{target_status}'.",
+        "message": f"Donation created successfully as {target_status}.",
         "donation": donation.to_dict(),
         "safety_warnings": safety_warnings
     }), 201
 
+@donation_bp.route("/my", methods=["GET"])
+@jwt_required()
+@role_required("DONOR", "ADMIN")
+def get_my_donations():
+    auto_expire_stale_donations()
+    user_id = int(get_jwt_identity())
+    donations = Donation.query.filter_by(donor_id=user_id).order_by(Donation.created_at.desc()).all()
+    return jsonify({"donations": [d.to_dict(mask_pii=False) for d in donations]}), 200
+
+@donation_bp.route("/discover", methods=["GET"])
 @donation_bp.route("", methods=["GET"])
 def discover_donations():
     """
-    Public and Receiver discovery endpoint.
-    Filters: category, city, storage_conditions, status, search.
-    Calculates distance if client coordinates provided.
+    Public discovery endpoint.
+    Filters: status (default PUBLISHED), category, storage, search, latitude/longitude, max_km radius.
+    Protected: Personal contact PII (phones, direct coordinator email) is masked for public view.
     """
     auto_expire_stale_donations()
     
+    status = request.args.get("status", "PUBLISHED").upper()
     category = request.args.get("category")
-    city = request.args.get("city")
     storage = request.args.get("storage")
-    status = request.args.get("status", "PUBLISHED")
-    search = request.args.get("search", "").strip()
+    search = request.args.get("search")
     donor_id = request.args.get("donor_id")
     
     user_lat = request.args.get("lat", type=float)
@@ -208,7 +205,7 @@ def discover_donations():
     results = []
     
     for d in donations:
-        d_dict = d.to_dict()
+        d_dict = d.to_dict(mask_pii=True)
         distance = None
         if user_lat is not None and user_lng is not None and d.latitude is not None and d.longitude is not None:
             distance = haversine_distance_km(user_lat, user_lng, d.latitude, d.longitude)
@@ -237,11 +234,32 @@ def discover_donations():
 @donation_bp.route("/<int:donation_id>", methods=["GET"])
 def get_donation_detail(donation_id: int):
     auto_expire_stale_donations()
-    donation = Donation.query.get(donation_id)
+    donation = db.session.get(Donation, donation_id)
     if not donation:
         return jsonify({"error": "Donation listing not found"}), 404
         
-    data = donation.to_dict()
+    # Privacy check: unmask PII only for authorized donor, admin, or receiver with approved claim
+    mask_pii = True
+    try:
+        verify_jwt_in_request(optional=True)
+        uid = get_jwt_identity()
+        if uid:
+            uid = int(uid)
+            u = db.session.get(User, uid)
+            if u and (u.role == "ADMIN" or donation.donor_id == uid):
+                mask_pii = False
+            elif u and u.role == "RECEIVER":
+                from backend.models.donation_request import DonationRequest
+                has_approved_claim = DonationRequest.query.filter_by(
+                    donation_id=donation.id,
+                    receiver_id=uid
+                ).filter(DonationRequest.status.in_(["APPROVED", "PICKED_UP"])).first()
+                if has_approved_claim:
+                    mask_pii = False
+    except Exception:
+        pass
+        
+    data = donation.to_dict(mask_pii=mask_pii)
     data["pre_collection_safety_checklist"] = FoodSafetyService.get_pre_collection_safety_checklist(
         donation.category,
         donation.storage_conditions
@@ -252,8 +270,8 @@ def get_donation_detail(donation_id: int):
 @jwt_required()
 def update_donation(donation_id: int):
     user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
-    donation = Donation.query.get(donation_id)
+    user = db.session.get(User, user_id)
+    donation = db.session.get(Donation, donation_id)
     
     if not donation:
         return jsonify({"error": "Donation not found"}), 404
@@ -294,8 +312,8 @@ def update_donation(donation_id: int):
 @verified_organization_required()
 def publish_donation(donation_id: int):
     user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
-    donation = Donation.query.get(donation_id)
+    user = db.session.get(User, user_id)
+    donation = db.session.get(Donation, donation_id)
     
     if not donation:
         return jsonify({"error": "Donation not found"}), 404
@@ -319,8 +337,8 @@ def publish_donation(donation_id: int):
 @jwt_required()
 def withdraw_donation(donation_id: int):
     user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
-    donation = Donation.query.get(donation_id)
+    user = db.session.get(User, user_id)
+    donation = db.session.get(Donation, donation_id)
     
     if not donation:
         return jsonify({"error": "Donation not found"}), 404
@@ -343,14 +361,34 @@ def withdraw_donation(donation_id: int):
 @donation_bp.route("/upload-image", methods=["POST"])
 @jwt_required()
 def upload_image():
-    if "photo" not in request.files:
-        return jsonify({"error": "No file attached under 'photo' field"}), 400
+    file = request.files.get("photo") or request.files.get("image") or request.files.get("file")
+    if not file:
+        return jsonify({"error": "No file attached under 'photo', 'image', or 'file' field"}), 400
         
-    file = request.files["photo"]
     try:
         url = save_uploaded_file(file, subfolder="food")
-        return jsonify({"message": "File uploaded successfully", "photo_url": url}), 201
+        return jsonify({"message": "File uploaded successfully", "photo_url": url, "url": url}), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": "Upload failed", "details": str(e)}), 500
+
+@donation_bp.route("/<int:donation_id>/request", methods=["POST"])
+@jwt_required()
+def request_donation_alias(donation_id: int):
+    from backend.routes.request_routes import create_donation_request
+    return create_donation_request(donation_id)
+
+@donation_bp.route("/<int:donation_id>/requests", methods=["GET"])
+@jwt_required()
+def get_donation_requests_alias(donation_id: int):
+    user_id = int(get_jwt_identity())
+    user = db.session.get(User, user_id)
+    donation = db.session.get(Donation, donation_id)
+    if not donation:
+        return jsonify({"error": "Donation not found"}), 404
+    if donation.donor_id != user_id and user.role != "ADMIN":
+        return jsonify({"error": "Forbidden"}), 403
+    from backend.models.donation_request import DonationRequest
+    requests_list = DonationRequest.query.filter_by(donation_id=donation_id).order_by(DonationRequest.created_at.desc()).all()
+    return jsonify({"requests": [r.to_dict() for r in requests_list]}), 200

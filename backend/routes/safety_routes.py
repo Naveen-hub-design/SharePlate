@@ -30,7 +30,7 @@ def create_safety_report():
         
     donation = None
     if donation_id:
-        donation = Donation.query.get(int(donation_id))
+        donation = db.session.get(Donation, int(donation_id))
         if donation and not reported_org_id:
             reported_org_id = donation.organization_id
             

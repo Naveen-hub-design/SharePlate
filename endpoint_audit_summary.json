@@ -1,0 +1,532 @@
+[
+  {
+    "name": "Health Check",
+    "method": "GET",
+    "url": "/api/v1/health",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 1.4,
+    "passed": true,
+    "summary": "online"
+  },
+  {
+    "name": "Register New User",
+    "method": "POST",
+    "url": "/api/v1/auth/register",
+    "expected": 201,
+    "actual": 201,
+    "latency_ms": 24.1,
+    "passed": true,
+    "summary": "Registration successful. Organization submitt"
+  },
+  {
+    "name": "Login Donor",
+    "method": "POST",
+    "url": "/api/v1/auth/login",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 11.8,
+    "passed": true,
+    "summary": "Login successful"
+  },
+  {
+    "name": "Login Receiver",
+    "method": "POST",
+    "url": "/api/v1/auth/login",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 12.2,
+    "passed": true,
+    "summary": "Login successful"
+  },
+  {
+    "name": "Login Admin",
+    "method": "POST",
+    "url": "/api/v1/auth/login",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 9.5,
+    "passed": true,
+    "summary": "Login successful"
+  },
+  {
+    "name": "Get Current Profile (/me)",
+    "method": "GET",
+    "url": "/api/v1/auth/me",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 2.0,
+    "passed": true,
+    "summary": "['user']"
+  },
+  {
+    "name": "Update Profile",
+    "method": "PUT",
+    "url": "/api/v1/auth/profile",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 8.8,
+    "passed": true,
+    "summary": "Profile updated"
+  },
+  {
+    "name": "Auth Logout",
+    "method": "POST",
+    "url": "/api/v1/auth/logout",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 6.5,
+    "passed": true,
+    "summary": "Successfully logged out. Client tokens cleare"
+  },
+  {
+    "name": "Get My Organization",
+    "method": "GET",
+    "url": "/api/v1/organizations/my",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 2.0,
+    "passed": true,
+    "summary": "['organization']"
+  },
+  {
+    "name": "Update My Organization",
+    "method": "PUT",
+    "url": "/api/v1/organizations/my",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 21.3,
+    "passed": true,
+    "summary": "Organization updated successfully"
+  },
+  {
+    "name": "Get Public Organization Profile",
+    "method": "GET",
+    "url": "/api/v1/organizations/8",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 0.4,
+    "passed": true,
+    "summary": "['organization']"
+  },
+  {
+    "name": "Get Safety Categories & Allergens",
+    "method": "GET",
+    "url": "/api/v1/safety/categories-and-allergens",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 0.3,
+    "passed": true,
+    "summary": "['allergens', 'categories', 'regulatory_refer"
+  },
+  {
+    "name": "Get Safety Checklist Items",
+    "method": "GET",
+    "url": "/api/v1/safety/checklist",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 0.2,
+    "passed": true,
+    "summary": "['checklist']"
+  },
+  {
+    "name": "Submit Incident Safety Report",
+    "method": "POST",
+    "url": "/api/v1/safety/reports",
+    "expected": 201,
+    "actual": 201,
+    "latency_ms": 16.2,
+    "passed": true,
+    "summary": "Food safety report submitted. Platform safety"
+  },
+  {
+    "name": "Create Donation (Draft)",
+    "method": "POST",
+    "url": "/api/v1/donations",
+    "expected": 201,
+    "actual": 201,
+    "latency_ms": 20.0,
+    "passed": true,
+    "summary": "Donation created successfully as DRAFT."
+  },
+  {
+    "name": "Get Donation Detail",
+    "method": "GET",
+    "url": "/api/v1/donations/3",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 3.0,
+    "passed": true,
+    "summary": "['donation']"
+  },
+  {
+    "name": "Update Donation",
+    "method": "PUT",
+    "url": "/api/v1/donations/3",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 21.0,
+    "passed": true,
+    "summary": "Donation updated successfully"
+  },
+  {
+    "name": "Publish Donation",
+    "method": "POST",
+    "url": "/api/v1/donations/3/publish",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 17.2,
+    "passed": true,
+    "summary": "Donation listing published successfully"
+  },
+  {
+    "name": "Get My Donations",
+    "method": "GET",
+    "url": "/api/v1/donations/my",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 4.6,
+    "passed": true,
+    "summary": "['donations']"
+  },
+  {
+    "name": "Public Discover Donations (All)",
+    "method": "GET",
+    "url": "/api/v1/donations",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 2.8,
+    "passed": true,
+    "summary": "['donations', 'page', 'per_page']"
+  },
+  {
+    "name": "Public Discover Route (/discover)",
+    "method": "GET",
+    "url": "/api/v1/donations/discover?category=COOKED_MEALS",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 2.6,
+    "passed": true,
+    "summary": "['donations', 'page', 'per_page']"
+  },
+  {
+    "name": "Upload Food Photo",
+    "method": "POST",
+    "url": "/api/v1/donations/upload-image",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 26.2,
+    "passed": true,
+    "summary": "File uploaded successfully"
+  },
+  {
+    "name": "Create Donation Claim (20 Portions)",
+    "method": "POST",
+    "url": "/api/v1/requests/donations/3",
+    "expected": 201,
+    "actual": 201,
+    "latency_ms": 41.4,
+    "passed": true,
+    "summary": "Donation claim request submitted successfully"
+  },
+  {
+    "name": "Get Donation Requests (/donations/<id>/requests)",
+    "method": "GET",
+    "url": "/api/v1/donations/3/requests",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 2.6,
+    "passed": true,
+    "summary": "['requests']"
+  },
+  {
+    "name": "Get My Requests (/requests/my - Receiver)",
+    "method": "GET",
+    "url": "/api/v1/requests/my",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 3.4,
+    "passed": true,
+    "summary": "['requests']"
+  },
+  {
+    "name": "Get My Requests (/requests/my - Donor)",
+    "method": "GET",
+    "url": "/api/v1/requests/my",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 3.6,
+    "passed": true,
+    "summary": "['requests']"
+  },
+  {
+    "name": "Approve Claim Request",
+    "method": "POST",
+    "url": "/api/v1/requests/7/approve",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 28.1,
+    "passed": true,
+    "summary": "Request approved. Secure handover OTP generat"
+  },
+  {
+    "name": "Create Donation Claim Alias (/donations/<id>/request)",
+    "method": "POST",
+    "url": "/api/v1/donations/3/request",
+    "expected": 201,
+    "actual": 201,
+    "latency_ms": 26.6,
+    "passed": true,
+    "summary": "Donation claim request submitted successfully"
+  },
+  {
+    "name": "Reject Claim Request",
+    "method": "POST",
+    "url": "/api/v1/requests/8/reject",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 31.4,
+    "passed": true,
+    "summary": "Request rejected"
+  },
+  {
+    "name": "Cancel Claim Request",
+    "method": "POST",
+    "url": "/api/v1/requests/9/cancel",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 49.6,
+    "passed": true,
+    "summary": "Request cancelled successfully and reserved p"
+  },
+  {
+    "name": "Verify & Complete Pickup (/pickups/verify)",
+    "method": "POST",
+    "url": "/api/v1/pickups/verify",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 55.4,
+    "passed": true,
+    "summary": "Pickup verified and completed successfully!"
+  },
+  {
+    "name": "Get Pickup History",
+    "method": "GET",
+    "url": "/api/v1/pickups/history",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 3.3,
+    "passed": true,
+    "summary": "['pickups']"
+  },
+  {
+    "name": "Verify Pickup Alias - Duplicate Block (/pickups/verify-and-complete)",
+    "method": "POST",
+    "url": "/api/v1/pickups/verify-and-complete",
+    "expected": 409,
+    "actual": 409,
+    "latency_ms": 4.3,
+    "passed": true,
+    "summary": "Pickup has already been verified and recorded"
+  },
+  {
+    "name": "Get User Notifications",
+    "method": "GET",
+    "url": "/api/v1/notifications",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 7.6,
+    "passed": true,
+    "summary": "['notifications', 'page', 'per_page']"
+  },
+  {
+    "name": "Mark Notification Read",
+    "method": "PUT",
+    "url": "/api/v1/notifications/14/read",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 10.8,
+    "passed": true,
+    "summary": "Notification marked as read"
+  },
+  {
+    "name": "Mark All Notifications Read",
+    "method": "PUT",
+    "url": "/api/v1/notifications/read-all",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 9.3,
+    "passed": true,
+    "summary": "All notifications marked as read"
+  },
+  {
+    "name": "AI Listing Assistant",
+    "method": "POST",
+    "url": "/api/v1/ai/listing-assistant",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 0.5,
+    "passed": true,
+    "summary": "['completeness_score', 'missing_fields', 'rec"
+  },
+  {
+    "name": "AI Photo Analysis",
+    "method": "POST",
+    "url": "/api/v1/ai/analyze-photo",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 1.1,
+    "passed": true,
+    "summary": "['photo_url', 'provider', 'requires_donor_con"
+  },
+  {
+    "name": "AI Matching Explanation",
+    "method": "POST",
+    "url": "/api/v1/ai/explain-match",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 4.4,
+    "passed": true,
+    "summary": "['criteria_breakdown', 'deterministic_verific"
+  },
+  {
+    "name": "Platform Public Impact Metrics",
+    "method": "GET",
+    "url": "/api/v1/analytics/impact",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 11.9,
+    "passed": true,
+    "summary": "['category_distribution', 'impact', 'methodol"
+  },
+  {
+    "name": "Donor Operational Dashboard Metrics",
+    "method": "GET",
+    "url": "/api/v1/analytics/donor-dashboard",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 5.7,
+    "passed": true,
+    "summary": "['active_listings_count', 'completed_listings"
+  },
+  {
+    "name": "Receiver Impact Dashboard Metrics",
+    "method": "GET",
+    "url": "/api/v1/analytics/receiver-dashboard",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 4.2,
+    "passed": true,
+    "summary": "['approved_pickups', 'approved_pickups_count'"
+  },
+  {
+    "name": "Admin Platform Overview",
+    "method": "GET",
+    "url": "/api/v1/admin/overview",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 11.7,
+    "passed": true,
+    "summary": "['active_donations', 'completed_donations', '"
+  },
+  {
+    "name": "Admin List Pending Verifications",
+    "method": "GET",
+    "url": "/api/v1/admin/verifications",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 1.9,
+    "passed": true,
+    "summary": "['organizations']"
+  },
+  {
+    "name": "Admin Review Verification",
+    "method": "POST",
+    "url": "/api/v1/admin/verifications/8",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 24.2,
+    "passed": true,
+    "summary": "Organization successfully verified."
+  },
+  {
+    "name": "Admin List Users",
+    "method": "GET",
+    "url": "/api/v1/admin/users",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 7.2,
+    "passed": true,
+    "summary": "['users']"
+  },
+  {
+    "name": "Admin Update User Status",
+    "method": "PUT",
+    "url": "/api/v1/admin/users/12/status",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 13.5,
+    "passed": true,
+    "summary": "User status updated to ACTIVE."
+  },
+  {
+    "name": "Admin List Safety Reports",
+    "method": "GET",
+    "url": "/api/v1/admin/safety-reports",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 3.2,
+    "passed": true,
+    "summary": "['safety_reports']"
+  },
+  {
+    "name": "Admin Resolve Safety Report",
+    "method": "PUT",
+    "url": "/api/v1/admin/safety-reports/3",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 15.9,
+    "passed": true,
+    "summary": "Safety report updated successfully."
+  },
+  {
+    "name": "Admin View Audit Logs",
+    "method": "GET",
+    "url": "/api/v1/admin/audit-logs",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 5.6,
+    "passed": true,
+    "summary": "['logs', 'page', 'pages']"
+  },
+  {
+    "name": "Withdraw Donation",
+    "method": "POST",
+    "url": "/api/v1/donations/3/withdraw",
+    "expected": 200,
+    "actual": 200,
+    "latency_ms": 20.9,
+    "passed": true,
+    "summary": "Donation withdrawn successfully"
+  },
+  {
+    "name": "Serve Static Upload (Nonexistent File -> 404)",
+    "method": "GET",
+    "url": "/api/v1/uploads/food/nonexistent.jpg",
+    "expected": 404,
+    "actual": 404,
+    "latency_ms": 0.6,
+    "passed": true,
+    "summary": "Resource not found"
+  },
+  {
+    "name": "Serve Static Upload (Invalid subfolder -> 400)",
+    "method": "GET",
+    "url": "/api/v1/uploads/malicious/file.txt",
+    "expected": 400,
+    "actual": 400,
+    "latency_ms": 0.3,
+    "passed": true,
+    "summary": "Invalid upload category"
+  }
+]

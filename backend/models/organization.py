@@ -1,5 +1,6 @@
 import datetime
 from backend.extensions import db
+from backend.utils.time_utils import utc_now
 
 class Organization(db.Model):
     __tablename__ = "organizations"
@@ -27,8 +28,8 @@ class Organization(db.Model):
     # Structured capacity: e.g. {"servings_per_day": 200, "has_cold_storage": true, "has_transport": true}
     capacity_info = db.Column(db.JSON, nullable=True)
     
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now, nullable=False)
     
     # Relationships
     donations = db.relationship("Donation", backref="organization", lazy="dynamic", foreign_keys="Donation.organization_id")
@@ -67,7 +68,7 @@ class OrganizationVerificationRecord(db.Model):
     previous_status = db.Column(db.String(20), nullable=False)
     new_status = db.Column(db.String(20), nullable=False)
     notes = db.Column(db.Text, nullable=False)
-    reviewed_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
+    reviewed_at = db.Column(db.DateTime, default=utc_now, nullable=False)
     
     reviewer = db.relationship("User", foreign_keys=[reviewer_id])
     

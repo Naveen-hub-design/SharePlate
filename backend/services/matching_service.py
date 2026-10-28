@@ -1,6 +1,7 @@
 import math
 import datetime
 from typing import Dict, List, Any, Optional
+from backend.utils.time_utils import utc_now
 
 def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculates great-circle distance between two GPS coordinates in kilometers."""
@@ -34,7 +35,7 @@ class MatchingService:
         if donation.remaining_portions <= 0:
             return None
             
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         if donation.collection_deadline <= now:
             return None
             

@@ -1,6 +1,7 @@
 import datetime
 import bcrypt
 from backend.extensions import db
+from backend.utils.time_utils import utc_now
 
 class User(db.Model):
     __tablename__ = "users"
@@ -12,8 +13,8 @@ class User(db.Model):
     phone = db.Column(db.String(30), nullable=True)
     role = db.Column(db.String(20), nullable=False, default="DONOR")  # DONOR, RECEIVER, ADMIN
     status = db.Column(db.String(20), nullable=False, default="ACTIVE")  # ACTIVE, SUSPENDED
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now, nullable=False)
     
     # Relationships
     organization = db.relationship("Organization", backref="user", uselist=False, cascade="all, delete-orphan")
@@ -22,7 +23,14 @@ class User(db.Model):
     notifications = db.relationship("Notification", backref="user", lazy="dynamic", cascade="all, delete-orphan")
     
     def set_password(self, password: str):
-        salt = bcrypt.gensalt(rounds=12)
+        from flask import current_app
+        rounds = 12
+        try:
+            if current_app and current_app.config.get("TESTING"):
+                rounds = 4
+        except RuntimeError:
+            pass
+        salt = bcrypt.gensalt(rounds=rounds)
         self.password_hash = bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
         
     def check_password(self, password: str) -> bool:

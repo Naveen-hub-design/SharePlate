@@ -1,6 +1,7 @@
 from functools import wraps
 from flask import jsonify, request
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
+from backend.extensions import db
 from backend.models.user import User
 
 def get_current_authenticated_user():
@@ -10,8 +11,7 @@ def get_current_authenticated_user():
         user_id = get_jwt_identity()
         if not user_id:
             return None
-        user = User.query.get(int(user_id))
-        return user
+        return db.session.get(User, int(user_id))
     except Exception:
         return None
 
@@ -25,7 +25,7 @@ def role_required(*allowed_roles):
         def wrapper(*args, **kwargs):
             verify_jwt_in_request()
             user_id = get_jwt_identity()
-            user = User.query.get(int(user_id))
+            user = db.session.get(User, int(user_id))
             
             if not user:
                 return jsonify({"error": "User not found or account deactivated"}), 401
@@ -54,7 +54,7 @@ def verified_organization_required():
         def wrapper(*args, **kwargs):
             verify_jwt_in_request()
             user_id = get_jwt_identity()
-            user = User.query.get(int(user_id))
+            user = db.session.get(User, int(user_id))
             
             if not user:
                 return jsonify({"error": "User not found"}), 401

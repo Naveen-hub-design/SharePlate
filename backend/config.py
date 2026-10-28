@@ -12,6 +12,8 @@ if os.path.exists(os.path.join(root_dir, ".env")):
 else:
     load_dotenv(os.path.join(basedir, ".env"))
 
+import urllib.parse
+
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "shareplate-production-grade-default-key-391823")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "shareplate-jwt-production-secret-981273")
@@ -19,14 +21,16 @@ class Config:
     
     # Database config
     DB_USER = os.getenv("DB_USER", "root")
-    DB_PASSWORD = os.getenv("DB_PASSWORD", "naveenke1234@")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
     DB_HOST = os.getenv("DB_HOST", "localhost")
     DB_PORT = os.getenv("DB_PORT", "3306")
     DB_NAME = os.getenv("DB_NAME", "shareplate_db")
     
+    encoded_password = urllib.parse.quote_plus(DB_PASSWORD)
+    
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
-        f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
+        f"mysql+pymysql://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
@@ -58,6 +62,11 @@ class TestConfig(Config):
     DB_NAME = os.getenv("TEST_DB_NAME", "shareplate_test_db")
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "TEST_DATABASE_URL",
-        f"mysql+pymysql://{Config.DB_USER}:{Config.DB_PASSWORD}@{Config.DB_HOST}:{Config.DB_PORT}/{DB_NAME}?charset=utf8mb4"
+        f"mysql+pymysql://{Config.DB_USER}:{Config.encoded_password}@{Config.DB_HOST}:{Config.DB_PORT}/{DB_NAME}?charset=utf8mb4"
     )
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "isolation_level": "READ COMMITTED",
+        "pool_pre_ping": True,
+        "pool_recycle": 3600
+    }

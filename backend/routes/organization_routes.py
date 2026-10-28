@@ -66,7 +66,7 @@ def update_my_organization():
 
 @organization_bp.route("/<int:org_id>", methods=["GET"])
 def get_public_organization(org_id: int):
-    org = Organization.query.get(org_id)
+    org = db.session.get(Organization, org_id)
     if not org:
         return jsonify({"error": "Organization not found"}), 404
         

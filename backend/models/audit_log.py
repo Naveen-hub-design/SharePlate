@@ -1,5 +1,6 @@
 import datetime
 from backend.extensions import db
+from backend.utils.time_utils import utc_now
 
 class AuditLog(db.Model):
     __tablename__ = "audit_logs"
@@ -11,7 +12,7 @@ class AuditLog(db.Model):
     entity_id = db.Column(db.Integer, nullable=True, index=True)
     ip_address = db.Column(db.String(45), nullable=True)
     details = db.Column(db.JSON, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False, index=True)
     
     user = db.relationship("User", foreign_keys=[user_id])
     

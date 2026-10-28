@@ -1,5 +1,6 @@
 import datetime
 from backend.extensions import db
+from backend.utils.time_utils import utc_now
 
 class Notification(db.Model):
     __tablename__ = "notifications"
@@ -12,7 +13,7 @@ class Notification(db.Model):
     type = db.Column(db.String(30), nullable=False, default="SYSTEM")
     link = db.Column(db.String(300), nullable=True)
     is_read = db.Column(db.Boolean, default=False, nullable=False, index=True)
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
     
     def to_dict(self):
         return {

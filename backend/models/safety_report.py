@@ -1,5 +1,6 @@
 import datetime
 from backend.extensions import db
+from backend.utils.time_utils import utc_now
 
 class SafetyReport(db.Model):
     __tablename__ = "safety_reports"
@@ -20,8 +21,8 @@ class SafetyReport(db.Model):
     resolved_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     resolved_at = db.Column(db.DateTime, nullable=True)
     
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now, nullable=False)
     
     # Relationships
     reporter = db.relationship("User", foreign_keys=[reporter_id])
