@@ -15,6 +15,7 @@ const DiscoverPage = React.lazy(() => import('./pages/DiscoverPage').then(m => (
 const DonationDetailPage = React.lazy(() => import('./pages/DonationDetailPage').then(m => ({ default: m.DonationDetailPage })));
 const SafetyGuidancePage = React.lazy(() => import('./pages/SafetyGuidancePage').then(m => ({ default: m.SafetyGuidancePage })));
 const ImpactAnalyticsPage = React.lazy(() => import('./pages/ImpactAnalyticsPage').then(m => ({ default: m.ImpactAnalyticsPage })));
+const LiveMapPage = React.lazy(() => import('./pages/LiveMapPage').then(m => ({ default: m.LiveMapPage })));
 const PrivacyPolicyPage = React.lazy(() => import('./pages/LegalPlaceholders').then(m => ({ default: m.PrivacyPolicyPage })));
 const TermsOfServicePage = React.lazy(() => import('./pages/LegalPlaceholders').then(m => ({ default: m.TermsOfServicePage })));
 
@@ -49,6 +50,7 @@ function App() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/how-it-works" element={<HowItWorksPage />} />
                 <Route path="/discover" element={<DiscoverPage />} />
+                <Route path="/live-map" element={<LiveMapPage />} />
                 <Route path="/donations/:id" element={<DonationDetailPage />} />
                 <Route path="/safety" element={<SafetyGuidancePage />} />
                 <Route path="/impact" element={<ImpactAnalyticsPage />} />

@@ -99,6 +99,18 @@ export const Navbar: React.FC = () => {
             </Link>
 
             <Link
+              to="/live-map"
+              className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                isActive('/live-map')
+                  ? 'bg-[#1B4332] text-white shadow-sm'
+                  : 'text-stone-700 hover:text-[#1B4332] hover:bg-[#F4EFE6]'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
+              Live Radar
+            </Link>
+
+            <Link
               to="/how-it-works"
               className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors ${
                 isActive('/how-it-works')
@@ -318,6 +330,14 @@ export const Navbar: React.FC = () => {
             className="block px-3 py-2 text-base font-semibold text-stone-800 hover:bg-stone-50 rounded-lg"
           >
             Discover Food
+          </Link>
+          <Link
+            to="/live-map"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-base font-semibold text-stone-800 hover:bg-stone-50 rounded-lg"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Live Radar Map
           </Link>
           <Link
             to="/how-it-works"

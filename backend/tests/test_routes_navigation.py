@@ -31,3 +31,17 @@ def test_routes_geocoding_api(client):
     assert "Indiranagar" in first["label"]
     assert "lat" in first
     assert "lng" in first
+
+def test_routes_live_radar_api(client):
+    """Verifies live operations radar returns active donations, NGOs, couriers, and hotspots."""
+    res = client.get("/api/v1/routes/live-radar")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["radar_status"] == "ONLINE"
+    assert "active_donations" in data
+    assert "ngo_hubs" in data
+    assert "active_couriers" in data
+    assert len(data["active_couriers"]) >= 1
+    assert "hotspots" in data
+    assert "metrics" in data
+    assert "active_couriers_in_transit" in data["metrics"]

@@ -156,4 +156,5 @@ export const routeApi = {
     donation_id?: string | number;
   }) => apiClient.get('/routes/directions', { params }),
   geocode: (query: string) => apiClient.get('/routes/geocode', { params: { query } }),
+  getLiveRadar: () => apiClient.get('/routes/live-radar'),
 };

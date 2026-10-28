@@ -89,7 +89,7 @@ SharePlate Pro/
 │   ├── scripts/
 │   │   ├── seed_data.py            # Seeds realistic Bangalore donors, NGOs & listings
 │   │   └── bootstrap_admin.py      # Secure CLI admin account bootstrap
-│   └── tests/                      # Automated Pytest suite (28 passed tests)
+│   └── tests/                      # Automated Pytest suite (29 passed tests)
 ├── frontend/                       # React 19 + TypeScript + Tailwind CSS v4
 │   ├── src/
 │   │   ├── api/client.ts           # Axios client with JWT interceptor
