@@ -4,6 +4,7 @@ import { donationApi, requestApi, aiApi } from '../api/client';
 import type { Donation } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { SafetyReportModal } from '../components/SafetyReportModal';
+import { RescueRouteModal } from '../components/RescueRouteModal';
 import { 
   Clock, 
   MapPin, 
@@ -19,7 +20,9 @@ import {
   Share2,
   Calendar,
   Layers,
-  Utensils
+  Utensils,
+  Navigation,
+  Route
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -32,6 +35,7 @@ export const DonationDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [matchData, setMatchData] = useState<any>(null);
   const [safetyModalOpen, setSafetyModalOpen] = useState(false);
+  const [routeModalOpen, setRouteModalOpen] = useState(false);
 
   // Claim modal state
   const [claimModalOpen, setClaimModalOpen] = useState(false);
@@ -394,6 +398,16 @@ export const DonationDetailPage: React.FC = () => {
                 <Mail className="w-4 h-4 text-[#1B4332] shrink-0" />
                 <span>{donation.donor_contact_email}</span>
               </div>
+
+              {/* Interactive Route Navigation Trigger */}
+              <button
+                type="button"
+                onClick={() => setRouteModalOpen(true)}
+                className="w-full mt-2 py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-[#1B4332] rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border border-emerald-200 transition-colors shadow-sm"
+              >
+                <Navigation className="w-3.5 h-3.5 text-emerald-700" />
+                Plan Rescue Route & Turn-by-Turn GPS
+              </button>
             </div>
           </div>
         </div>
@@ -405,6 +419,13 @@ export const DonationDetailPage: React.FC = () => {
         donationTitle={donation.title}
         isOpen={safetyModalOpen}
         onClose={() => setSafetyModalOpen(false)}
+      />
+
+      {/* Rescue Route & Navigation Modal */}
+      <RescueRouteModal
+        isOpen={routeModalOpen}
+        onClose={() => setRouteModalOpen(false)}
+        donation={donation}
       />
 
       {/* Claim Modal */}

@@ -200,3 +200,40 @@ export interface ImpactAnalytics {
     portions_collected: number;
   }>;
 }
+
+export type TransportMode = 'driving' | 'motorcycle' | 'bicycle' | 'walking';
+
+export interface RouteTurnStep {
+  instruction: string;
+  distance_km: number;
+  duration_min: number;
+  type: string;
+}
+
+export interface FSSAISafetyAnalysis {
+  status: 'SAFE' | 'OPTIMAL' | 'URGENT' | 'RISK_EXCEEDED' | 'EXPIRED';
+  safe_window_confirmed: boolean;
+  message: string;
+  minutes_remaining_after_transit: number | null;
+  collection_deadline: string | null;
+}
+
+export interface RouteDirectionResponse {
+  mode: TransportMode;
+  distance_km: number;
+  duration_minutes: number;
+  traffic_condition: string;
+  route_coordinates: [number, number][];
+  turn_by_turn: RouteTurnStep[];
+  origin: { lat: number; lng: number };
+  destination: { lat: number; lng: number };
+  fssai_safety: FSSAISafetyAnalysis;
+  routing_source: string;
+}
+
+export interface GeocodeResult {
+  label: string;
+  lat: number;
+  lng: number;
+  type: string;
+}

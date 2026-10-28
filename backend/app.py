@@ -34,6 +34,7 @@ def create_app(config_class=Config):
     from backend.routes.admin_routes import admin_bp
     from backend.routes.analytics_routes import analytics_bp
     from backend.routes.ai_routes import ai_bp
+    from backend.routes.route_routes import route_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(organization_bp)
@@ -45,6 +46,7 @@ def create_app(config_class=Config):
     app.register_blueprint(admin_bp)
     app.register_blueprint(analytics_bp)
     app.register_blueprint(ai_bp)
+    app.register_blueprint(route_bp)
     
     # Static file route for uploads with path traversal prevention
     ALLOWED_UPLOAD_SUBFOLDERS = {"food", "evidence"}

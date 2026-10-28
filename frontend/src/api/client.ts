@@ -144,3 +144,16 @@ export const aiApi = {
   matchDonation: (donationId: string, receiverOrgId?: string) =>
     apiClient.post(`/ai/match-donation/${donationId}`, { receiver_org_id: receiverOrgId }),
 };
+
+// Route & Navigation Endpoints
+export const routeApi = {
+  getDirections: (params: {
+    origin_lat: number;
+    origin_lng: number;
+    dest_lat: number;
+    dest_lng: number;
+    mode?: string;
+    donation_id?: string | number;
+  }) => apiClient.get('/routes/directions', { params }),
+  geocode: (query: string) => apiClient.get('/routes/geocode', { params: { query } }),
+};

@@ -22,9 +22,11 @@ The platform is designed in accordance with the statutory provisions of the **Fo
    - Generates cryptographically secure, random 6-digit OTP codes presented by the recipient collector and verified by donor staff at physical handover.
    - Complete chain of custody audit logging with IP tracking.
 
-3. **Multi-Factor Explainable Location Matching**
-   - Scores nearby surplus listings based on Haversine distance, collection urgency decay, recipient serving capacity, and cold-chain compatibility.
-   - Dual-view interface: Interactive **Leaflet / OpenStreetMap** spatial discovery and accessible list view.
+3. **Turn-by-Turn Rescue Route & Spatial Navigation Engine**
+   - **Interactive Route Mapping**: Real-time road routing, polyline visualization, distance, and transit time between frontline charities and donor kitchens.
+   - **Multi-Modal Transit Dispatch**: Supports Cargo Van, Insulated Scooter/Two-Wheeler, and Walking modes.
+   - **FSSAI Ambient Transit Safe Window Check**: Automatically calculates whether travel and handover can be completed within the 4-hour statutory ambient food safety limit.
+   - **Spatial Discovery & Geocoding**: Search Bangalore neighborhoods (Indiranagar, Koramangala, Whitefield, etc.) with radius ring filtering and GPS beacon.
 
 4. **Server-Side AI Assistant with Offline Heuristic Fallback**
    - **Food Photo Assistant**: Analyzes uploaded photos to recommend category, draft descriptions, and visual allergen tags (Gemini Vision / OpenAI Vision adapter).
@@ -76,7 +78,8 @@ SharePlate Pro/
 │   │   ├── analytics_routes.py     # Carbon & hunger impact metrics
 │   │   ├── safety_routes.py        # Safety reporting & listing suspension
 │   │   ├── admin_routes.py         # User toggling, overview, audit logs
-│   │   └── ai_routes.py            # AI vision photo analysis & match assistance
+│   │   ├── ai_routes.py            # AI vision photo analysis & match assistance
+│   │   └── route_routes.py         # Directions, turn-by-turn routing & geocoding
 │   ├── services/                   # Core business logic
 │   │   ├── food_safety_service.py  # FSSAI ambient limits, allergens, temperature
 │   │   ├── matching_service.py     # Haversine distance & capacity scoring
@@ -86,7 +89,7 @@ SharePlate Pro/
 │   ├── scripts/
 │   │   ├── seed_data.py            # Seeds realistic Bangalore donors, NGOs & listings
 │   │   └── bootstrap_admin.py      # Secure CLI admin account bootstrap
-│   └── tests/                      # Automated Pytest suite (17 passed tests)
+│   └── tests/                      # Automated Pytest suite (28 passed tests)
 ├── frontend/                       # React 19 + TypeScript + Tailwind CSS v4
 │   ├── src/
 │   │   ├── api/client.ts           # Axios client with JWT interceptor
