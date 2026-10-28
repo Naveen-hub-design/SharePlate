@@ -132,7 +132,9 @@ def update_user_status(target_user_id: int):
         return jsonify({"error": "User not found"}), 404
         
     data = request.get_json() or {}
-    new_status = data.get("status", "").strip().upper()
+    new_status = data.get("status", "").strip().upper() if data.get("status") else ""
+    if not new_status and "is_active" in data:
+        new_status = "ACTIVE" if data["is_active"] else "SUSPENDED"
     reason = data.get("reason", "").strip()
     
     if new_status not in ["ACTIVE", "SUSPENDED"]:

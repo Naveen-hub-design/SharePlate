@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Isolated Role Layouts
 import { PublicLayout } from './layouts/PublicLayout';
@@ -47,7 +48,8 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <div className="min-h-screen bg-[#FAF7F2] text-stone-900 selection:bg-emerald-200 selection:text-emerald-900 font-sans">
-          <React.Suspense fallback={<RouteLoadingFallback />}>
+          <ErrorBoundary>
+            <React.Suspense fallback={<RouteLoadingFallback />}>
             <Routes>
               {/* 1. Public Marketing Website Layout */}
               <Route element={<PublicLayout />}>
@@ -132,6 +134,7 @@ function App() {
               </Route>
             </Routes>
           </React.Suspense>
+        </ErrorBoundary>
 
           {/* Platform Toast Notifications */}
           <Toaster
