@@ -19,8 +19,24 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export const AdminDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'verification' | 'safety' | 'users' | 'audit'>('verification');
+import { useLocation } from 'react-router-dom';
+import { adminService } from '../services/adminService';
+
+interface AdminDashboardProps {
+  tab?: 'overview' | 'verification' | 'safety' | 'users' | 'audit' | 'analytics';
+}
+
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab }) => {
+  const location = useLocation();
+
+  const getInitialTab = (): 'verification' | 'safety' | 'users' | 'audit' => {
+    if (tab === 'safety' || location.pathname.includes('/admin/safety-reports')) return 'safety';
+    if (tab === 'users' || location.pathname.includes('/admin/users')) return 'users';
+    if (tab === 'audit' || location.pathname.includes('/admin/audit-logs')) return 'audit';
+    return 'verification';
+  };
+
+  const [activeTab, setActiveTab] = useState<'verification' | 'safety' | 'users' | 'audit'>(getInitialTab);
   const [stats, setStats] = useState<any>(null);
 
   // Verification queue state
@@ -34,22 +50,26 @@ export const AdminDashboard: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    setActiveTab(getInitialTab());
+  }, [tab, location.pathname]);
+
   const fetchAdminData = async () => {
     setLoading(true);
     try {
       const [statsRes, orgsRes, reportsRes, usersRes, logsRes] = await Promise.allSettled([
-        adminApi.getOverview(),
-        orgApi.getPending(),
-        safetyApi.getAllReports(),
-        adminApi.getUsers(),
-        adminApi.getAuditLogs({ limit: 25 }),
+        adminService.getOverview(),
+        adminService.getPendingVerifications(),
+        adminService.getSafetyReports(),
+        adminService.getUsers(),
+        adminService.getAuditLogs({ limit: 25 }),
       ]);
 
-      if (statsRes.status === 'fulfilled') setStats(statsRes.value.data.overview || null);
-      if (orgsRes.status === 'fulfilled') setPendingOrgs(orgsRes.value.data.organizations || []);
-      if (reportsRes.status === 'fulfilled') setSafetyReports(reportsRes.value.data.reports || []);
-      if (usersRes.status === 'fulfilled') setUsers(usersRes.value.data.users || []);
-      if (logsRes.status === 'fulfilled') setAuditLogs(logsRes.value.data.logs || []);
+      if (statsRes.status === 'fulfilled') setStats(statsRes.value.overview || null);
+      if (orgsRes.status === 'fulfilled') setPendingOrgs(orgsRes.value.organizations || []);
+      if (reportsRes.status === 'fulfilled') setSafetyReports(reportsRes.value.reports || []);
+      if (usersRes.status === 'fulfilled') setUsers(usersRes.value.users || []);
+      if (logsRes.status === 'fulfilled') setAuditLogs(logsRes.value.logs || []);
     } catch (e) {
       console.error(e);
       toast.error('Failed to load administrative data');

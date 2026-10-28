@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { requestApi, donationApi } from '../api/client';
+import { Link, useLocation } from 'react-router-dom';
+import { receiverService } from '../services/receiverService';
+import { publicService } from '../services/publicService';
 import type { DonationRequest, Donation } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { DonationCard } from '../components/DonationCard';
@@ -16,12 +17,30 @@ import {
   Copy, 
   Check, 
   RefreshCw,
-  Search
+  Search,
+  FileCheck2,
+  BarChart3,
+  PackageCheck,
+  ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export const ReceiverDashboard: React.FC = () => {
+interface ReceiverDashboardProps {
+  view?: 'overview' | 'discover' | 'requests' | 'pickups' | 'analytics' | 'profile';
+}
+
+export const ReceiverDashboard: React.FC<ReceiverDashboardProps> = ({ view }) => {
   const { user, isVerified } = useAuth();
+  const location = useLocation();
+
+  const activeView = view || (() => {
+    if (location.pathname.includes('/receiver/requests')) return 'requests';
+    if (location.pathname.includes('/receiver/pickups')) return 'pickups';
+    if (location.pathname.includes('/receiver/analytics')) return 'analytics';
+    if (location.pathname.includes('/receiver/profile')) return 'profile';
+    return 'overview';
+  })();
+
   const [requests, setRequests] = useState<DonationRequest[]>([]);
   const [recommendedDonations, setRecommendedDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,15 +50,15 @@ export const ReceiverDashboard: React.FC = () => {
     setLoading(true);
     try {
       const [requestsRes, discoverRes] = await Promise.allSettled([
-        requestApi.getMyRequests(),
-        donationApi.getDiscover({ limit: 4 }),
+        receiverService.getMyClaims(),
+        publicService.getDiscoverDonations({ limit: 4 } as any),
       ]);
 
       if (requestsRes.status === 'fulfilled') {
-        setRequests(requestsRes.value.data.requests || []);
+        setRequests(requestsRes.value.requests || []);
       }
       if (discoverRes.status === 'fulfilled') {
-        setRecommendedDonations(discoverRes.value.data.donations || []);
+        setRecommendedDonations(discoverRes.value.donations || []);
       }
     } catch (e) {
       console.error(e);
@@ -63,7 +82,7 @@ export const ReceiverDashboard: React.FC = () => {
   const handleCancelRequest = async (requestId: string) => {
     if (!confirm('Are you sure you want to cancel this surplus food request?')) return;
     try {
-      await requestApi.cancel(requestId, 'Cancelled by recipient NGO');
+      await receiverService.cancelClaim(requestId, 'Cancelled by recipient NGO');
       toast.success('Request cancelled.');
       fetchReceiverData();
     } catch (err: any) {
@@ -76,12 +95,12 @@ export const ReceiverDashboard: React.FC = () => {
   const completedCollections = requests.filter((r) => r.status === 'COMPLETED');
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="max-w-7xl mx-auto">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
               Recipient NGO Portal
             </span>
             <span
@@ -106,10 +125,10 @@ export const ReceiverDashboard: React.FC = () => {
             className="p-3 text-stone-600 hover:text-stone-900 bg-white border border-stone-200 rounded-xl hover:bg-stone-50 transition-colors"
             title="Refresh dashboard"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <Link
-            to="/discover"
+            to="/receiver/discover"
             className="px-5 py-3 text-sm font-bold text-white bg-[#1B4332] hover:bg-[#2D6A4F] rounded-xl shadow-md transition-all flex items-center gap-2"
           >
             <Search className="w-4 h-4" />
@@ -131,242 +150,239 @@ export const ReceiverDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-sm">
-          <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
-            Approved Pickups
-          </span>
-          <p className="text-2xl sm:text-3xl font-extrabold text-[#1B4332] mt-1 font-heading">
-            {approvedPickups.length}
-          </p>
-          <p className="text-[11px] text-emerald-700 font-semibold mt-1">Ready with 6-digit OTP</p>
-        </div>
+      {/* Metric Cards (visible in overview & analytics) */}
+      {(activeView === 'overview' || activeView === 'analytics') && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-sm">
+            <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
+              Approved Pickups
+            </span>
+            <p className="text-2xl sm:text-3xl font-extrabold text-[#1B4332] mt-1 font-heading">
+              {approvedPickups.length}
+            </p>
+            <p className="text-[11px] text-emerald-700 font-semibold mt-1">Ready with 6-digit OTP</p>
+          </div>
 
-        <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-sm">
-          <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
-            Pending Claims
-          </span>
-          <p className="text-2xl sm:text-3xl font-extrabold text-amber-600 mt-1 font-heading">
-            {pendingRequests.length}
-          </p>
-          <p className="text-[11px] text-stone-500 font-semibold mt-1">Awaiting donor response</p>
-        </div>
+          <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-sm">
+            <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
+              Pending Claims
+            </span>
+            <p className="text-2xl sm:text-3xl font-extrabold text-amber-600 mt-1 font-heading">
+              {pendingRequests.length}
+            </p>
+            <p className="text-[11px] text-stone-500 font-semibold mt-1">Awaiting donor response</p>
+          </div>
 
-        <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-sm">
-          <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
-            Meals Collected
-          </span>
-          <p className="text-2xl sm:text-3xl font-extrabold text-stone-900 mt-1 font-heading">
-            {completedCollections.reduce((acc, c) => acc + c.requested_quantity, 0)}
-          </p>
-          <p className="text-[11px] text-stone-500 font-semibold mt-1">Portions distributed</p>
-        </div>
+          <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-sm">
+            <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
+              Meals Collected
+            </span>
+            <p className="text-2xl sm:text-3xl font-extrabold text-stone-900 mt-1 font-heading">
+              {completedCollections.reduce((acc, c) => acc + (c.requested_quantity || 0), 0)}
+            </p>
+            <p className="text-[11px] text-stone-500 font-semibold mt-1">Portions distributed</p>
+          </div>
 
-        <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-sm">
-          <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
-            Total Rescues
-          </span>
-          <p className="text-2xl sm:text-3xl font-extrabold text-stone-900 mt-1 font-heading">
-            {completedCollections.length}
-          </p>
-          <p className="text-[11px] text-stone-500 font-semibold mt-1">Successful handovers</p>
+          <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-sm">
+            <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
+              Total Rescues
+            </span>
+            <p className="text-2xl sm:text-3xl font-extrabold text-stone-900 mt-1 font-heading">
+              {completedCollections.length}
+            </p>
+            <p className="text-[11px] text-stone-500 font-semibold mt-1">Successful handovers</p>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Section 1: APPROVED PICKUPS WITH SECURE 6-DIGIT OTP */}
-      <div className="space-y-8">
-        <div>
+      {/* VIEW: Approved Pickups with 6-digit OTP */}
+      {(activeView === 'overview' || activeView === 'pickups') && (
+        <div className="mb-10">
           <h2 className="text-xl font-bold text-stone-900 font-heading mb-4 flex items-center gap-2">
-            <KeyRound className="w-5 h-5 text-emerald-800" />
-            Approved Collections & Secure Handover OTPs
+            <KeyRound className="w-5 h-5 text-emerald-700" />
+            Approved Food Pickups (Present Code at Handover)
           </h2>
 
           {approvedPickups.length === 0 ? (
             <div className="p-8 bg-white rounded-3xl border border-stone-200 text-center">
-              <KeyRound className="w-8 h-8 text-stone-300 mx-auto mb-2" />
-              <h4 className="font-bold text-stone-700 text-sm">No pickups scheduled right now</h4>
+              <KeyRound className="w-10 h-10 text-stone-300 mx-auto mb-2" />
+              <h4 className="font-bold text-stone-800 text-sm">No scheduled collections pending</h4>
               <p className="text-xs text-stone-500 mt-0.5">
-                Browse available surplus listings and submit a claim to receive a collection code.
+                When a food donor accepts your claim, your secure 6-digit handover OTP code will appear here.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {approvedPickups.map((req) => (
-                <div
-                  key={req.id}
-                  className="bg-white rounded-3xl border-2 border-emerald-300/80 shadow-md p-6 flex flex-col justify-between relative overflow-hidden"
-                >
-                  <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[10px] font-extrabold px-3 py-1 rounded-bl-xl tracking-wider">
-                    READY FOR PICKUP
-                  </div>
-
-                  <div>
-                    <h3 className="font-extrabold text-stone-900 text-base">{req.donation?.title}</h3>
-                    <p className="text-xs text-stone-600 mt-1 flex items-center gap-1.5">
-                      <Building2 className="w-3.5 h-3.5 text-stone-400" />
-                      <span>{req.donation?.donor_organization?.name}</span>
-                    </p>
-                    <p className="text-xs text-stone-500 flex items-center gap-1.5 mt-0.5">
-                      <MapPin className="w-3.5 h-3.5 text-stone-400" />
-                      <span>{req.donation?.collection_address}</span>
-                    </p>
-
-                    <div className="mt-4 p-3 bg-stone-50 rounded-2xl flex items-center justify-between text-xs">
-                      <div>
-                        <span className="text-stone-500 block">Reserved Portions</span>
-                        <span className="font-bold text-stone-900 text-sm">
-                          {req.requested_quantity} {req.donation?.unit}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-stone-500 block">Collection Deadline</span>
-                        <span className="font-bold text-amber-700 text-xs">
-                          {new Date(req.donation?.collection_deadline || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* PROMINENT 6-DIGIT OTP BADGE */}
-                    <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 text-center">
-                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-800 block mb-1">
-                        Present Code at Physical Handover
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {approvedPickups.map((r) => (
+                <div key={r.id} className="p-5 bg-white rounded-3xl border-2 border-emerald-500/30 shadow-md">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        READY FOR HANDOVER
                       </span>
-                      <div className="flex items-center justify-center gap-3">
-                        <span className="font-mono text-3xl font-extrabold tracking-[0.25em] text-stone-900">
-                          {req.pickup_code || '123456'}
-                        </span>
-                        <button
-                          onClick={() => handleCopyCode(req.pickup_code || '123456')}
-                          className="p-2 rounded-xl bg-white border border-amber-300 text-amber-800 hover:bg-amber-100 transition-colors"
-                          title="Copy Code"
-                        >
-                          {copiedCode === (req.pickup_code || '123456') ? (
-                            <Check className="w-4 h-4 text-emerald-600" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      <p className="text-[11px] text-stone-500 mt-2">
-                        The donor will type this code into their device to complete verification.
+                      <h3 className="font-bold text-lg text-stone-900 mt-1">{r.donation?.title}</h3>
+                      <p className="text-xs text-stone-500">
+                        Donor: <strong>{r.donation?.donor_organization?.name}</strong>
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
-                    <span className="text-stone-400">
-                      Approved: {new Date(req.approved_at || req.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    <Link
-                      to={`/donations/${req.donation_id}`}
-                      className="font-bold text-[#1B4332] hover:underline"
-                    >
-                      View Details
-                    </Link>
+                  {/* 6-Digit OTP Highlight Box */}
+                  <div className="my-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-900">
+                        Collection Verification Code (OTP)
+                      </p>
+                      <p className="text-3xl font-extrabold tracking-widest text-[#1B4332] font-mono mt-0.5">
+                        {r.pickup_code || '------'}
+                      </p>
+                    </div>
+                    {r.pickup_code && (
+                      <button
+                        onClick={() => handleCopyCode(r.pickup_code!)}
+                        className="p-2.5 bg-white rounded-xl text-emerald-800 hover:bg-emerald-100 transition-colors shadow-sm flex items-center gap-1.5 text-xs font-bold"
+                        title="Copy OTP to clipboard"
+                      >
+                        {copiedCode === r.pickup_code ? (
+                          <>
+                            <Check className="w-4 h-4 text-emerald-600" />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="text-xs text-stone-600 space-y-1">
+                    <p className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                      <span>{r.donation?.collection_address || 'Address provided upon confirmation'}</span>
+                    </p>
+                    <p className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                      <span>
+                        Collect before:{' '}
+                        <strong>
+                          {new Date(r.donation?.collection_deadline || '').toLocaleString([], {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </strong>
+                      </span>
+                    </p>
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
+      )}
 
-        {/* Section 2: Pending Claims */}
-        {pendingRequests.length > 0 && (
-          <div>
-            <h2 className="text-xl font-bold text-stone-900 font-heading mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-600" />
-              Pending Claims Awaiting Donor Confirmation ({pendingRequests.length})
-            </h2>
+      {/* VIEW: Pending Claims */}
+      {(activeView === 'overview' || activeView === 'requests') && pendingRequests.length > 0 && (
+        <div className="mb-10">
+          <h2 className="text-xl font-bold text-stone-900 font-heading mb-4 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-amber-600" />
+            Pending Surplus Food Claims
+          </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {pendingRequests.map((req) => (
-                <div key={req.id} className="p-5 bg-white rounded-2xl border border-stone-200 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-start justify-between">
-                      <h4 className="font-bold text-stone-900 text-sm">{req.donation?.title}</h4>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                        PENDING
-                      </span>
-                    </div>
-                    <p className="text-xs text-stone-600 mt-1">
-                      Donor: {req.donation?.donor_organization?.name}
-                    </p>
-                    <p className="text-xs text-stone-600">
-                      Requested: {req.requested_quantity} {req.donation?.unit}
-                    </p>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
-                    <span className="text-stone-400">
-                      Requested {new Date(req.created_at).toLocaleDateString()}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {pendingRequests.map((r) => (
+              <div key={r.id} className="p-4 bg-white rounded-2xl border border-stone-200 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                      PENDING DONOR REVIEW
                     </span>
-                    <button
-                      onClick={() => handleCancelRequest(req.id)}
-                      className="text-stone-400 hover:text-red-600 font-semibold transition-colors"
-                    >
-                      Cancel Request
-                    </button>
+                    <span className="text-xs text-stone-400">
+                      Requested {new Date(r.created_at).toLocaleDateString()}
+                    </span>
                   </div>
+                  <h4 className="font-bold text-stone-900 text-sm mt-1">{r.donation?.title}</h4>
+                  <p className="text-xs text-stone-600 mt-1">
+                    Claim Quantity: <strong>{r.requested_quantity} {r.donation?.unit}</strong>
+                  </p>
+                  <p className="text-xs text-stone-500">
+                    Donor: {r.donation?.donor_organization?.name}
+                  </p>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* Section 3: Recommended Matched Surplus */}
+                <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-end">
+                  <button
+                    onClick={() => handleCancelRequest(r.id)}
+                    className="text-xs text-red-600 hover:text-red-700 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50"
+                  >
+                    Cancel Claim
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* VIEW: Recommended Surplus (in overview) */}
+      {activeView === 'overview' && (
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-stone-900 font-heading flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-amber-600" />
-              Matched Surplus Food Near You
+              Recommended Fresh Surplus Available Now
             </h2>
-            <Link to="/discover" className="text-xs font-bold text-[#1B4332] hover:underline">
-              View All & Filter
+            <Link to="/receiver/discover" className="text-xs font-bold text-[#1B4332] hover:underline flex items-center gap-1">
+              Browse all <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {recommendedDonations.map((d) => (
-              <DonationCard key={d.id} donation={d} showMatchScore />
+              <DonationCard key={d.id} donation={d} />
             ))}
           </div>
         </div>
+      )}
 
-        {/* Section 4: Collection History */}
-        {completedCollections.length > 0 && (
-          <div className="pt-4">
-            <h2 className="text-xl font-bold text-stone-900 font-heading mb-4 flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-700" />
-              Past Rescues & Completed Handovers ({completedCollections.length})
-            </h2>
-
-            <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-sm">
-              <div className="divide-y divide-stone-100 text-xs">
-                {completedCollections.map((req) => (
-                  <div key={req.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <h4 className="font-bold text-stone-900 text-sm">{req.donation?.title}</h4>
-                      <p className="text-stone-500">
-                        From: {req.donation?.donor_organization?.name} • Quantity:{' '}
-                        <strong>{req.requested_quantity} {req.donation?.unit}</strong>
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className="inline-block px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                        COMPLETED
-                      </span>
-                      <p className="text-stone-400 text-[11px] mt-0.5">
-                        {new Date(req.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+      {/* VIEW: NGO Profile */}
+      {activeView === 'profile' && (
+        <div className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm max-w-3xl">
+          <h3 className="text-xl font-bold text-stone-900 font-heading mb-4 flex items-center gap-2">
+            <FileCheck2 className="w-5 h-5 text-emerald-700" />
+            Recipient NGO Organization Profile
+          </h3>
+          <div className="space-y-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 bg-stone-50 rounded-2xl">
+                <span className="text-xs text-stone-400 font-semibold block">Organization Name</span>
+                <span className="font-bold text-stone-900">{user?.organization?.name || 'Not provided'}</span>
+              </div>
+              <div className="p-4 bg-stone-50 rounded-2xl">
+                <span className="text-xs text-stone-400 font-semibold block">NGO Registration #</span>
+                <span className="font-bold text-stone-900">{user?.organization?.registration_number || 'Pending'}</span>
+              </div>
+              <div className="p-4 bg-stone-50 rounded-2xl">
+                <span className="text-xs text-stone-400 font-semibold block">Verification Status</span>
+                <span className="font-bold text-emerald-800">{user?.organization?.verification_status || 'PENDING'}</span>
+              </div>
+              <div className="p-4 bg-stone-50 rounded-2xl">
+                <span className="text-xs text-stone-400 font-semibold block">Operating City</span>
+                <span className="font-bold text-stone-900">
+                  {user?.organization?.city || 'City'}, {user?.organization?.state || 'State'}
+                </span>
               </div>
             </div>
+            <p className="text-xs text-stone-500 pt-2">
+              To update your operating zone, food transport vehicle capacity, or NGO registration credentials, please contact support.
+            </p>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -8,6 +8,7 @@ from backend.models.donation import Donation
 from backend.models.donation_request import DonationRequest
 from backend.models.pickup import PickupRecord
 from backend.services.matching_service import MatchingService
+from backend.utils.decorators import role_required
 
 analytics_bp = Blueprint("analytics", __name__, url_prefix="/api/v1/analytics")
 
@@ -96,6 +97,7 @@ def get_platform_impact():
 
 @analytics_bp.route("/donor-dashboard", methods=["GET"])
 @jwt_required()
+@role_required("DONOR", "ADMIN")
 def get_donor_dashboard():
     user_id = int(get_jwt_identity())
     user = db.session.get(User, user_id)
@@ -138,6 +140,7 @@ def get_donor_dashboard():
 
 @analytics_bp.route("/receiver-dashboard", methods=["GET"])
 @jwt_required()
+@role_required("RECEIVER", "ADMIN")
 def get_receiver_dashboard():
     user_id = int(get_jwt_identity())
     user = db.session.get(User, user_id)

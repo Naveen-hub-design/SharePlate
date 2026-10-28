@@ -3,12 +3,14 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
-// Layouts
+// Isolated Role Layouts
 import { PublicLayout } from './layouts/PublicLayout';
 import { AuthLayout } from './layouts/AuthLayout';
-import { DashboardLayout } from './layouts/DashboardLayout';
+import { DonorLayout } from './layouts/DonorLayout';
+import { ReceiverLayout } from './layouts/ReceiverLayout';
+import { AdminLayout } from './layouts/AdminLayout';
 
-// Route-level code-split public pages
+// Public Marketing Pages
 const LandingPage = React.lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
 const HowItWorksPage = React.lazy(() => import('./pages/HowItWorksPage').then(m => ({ default: m.HowItWorksPage })));
 const DiscoverPage = React.lazy(() => import('./pages/DiscoverPage').then(m => ({ default: m.DiscoverPage })));
@@ -18,12 +20,14 @@ const ImpactAnalyticsPage = React.lazy(() => import('./pages/ImpactAnalyticsPage
 const LiveMapPage = React.lazy(() => import('./pages/LiveMapPage').then(m => ({ default: m.LiveMapPage })));
 const PrivacyPolicyPage = React.lazy(() => import('./pages/LegalPlaceholders').then(m => ({ default: m.PrivacyPolicyPage })));
 const TermsOfServicePage = React.lazy(() => import('./pages/LegalPlaceholders').then(m => ({ default: m.TermsOfServicePage })));
+import { UnauthorizedPage } from './pages/UnauthorizedPage';
+const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 
-// Route-level code-split auth pages
+// Isolated Authentication Pages
 const LoginPage = React.lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
 const RegisterPage = React.lazy(() => import('./pages/RegisterPage').then(m => ({ default: m.RegisterPage })));
 
-// Route-level code-split authenticated application workspace pages
+// Authenticated Application Modules
 const DonorDashboard = React.lazy(() => import('./pages/DonorDashboard').then(m => ({ default: m.DonorDashboard })));
 const CreateDonationPage = React.lazy(() => import('./pages/CreateDonationPage').then(m => ({ default: m.CreateDonationPage })));
 const ReceiverDashboard = React.lazy(() => import('./pages/ReceiverDashboard').then(m => ({ default: m.ReceiverDashboard })));
@@ -56,6 +60,7 @@ function App() {
                 <Route path="/impact" element={<ImpactAnalyticsPage />} />
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 <Route path="/terms" element={<TermsOfServicePage />} />
+                <Route path="/unauthorized" element={<UnauthorizedPage />} />
               </Route>
 
               {/* 2. Isolated Authentication Layout */}
@@ -67,39 +72,64 @@ function App() {
               {/* 3. Donor Operational Workspace Layout */}
               <Route
                 element={
-                  <ProtectedRoute allowedRoles={['DONOR', 'ADMIN']}>
-                    <DashboardLayout />
+                  <ProtectedRoute allowedRoles={['DONOR']}>
+                    <DonorLayout />
                   </ProtectedRoute>
                 }
               >
-                <Route path="/donor/dashboard" element={<DonorDashboard />} />
-                <Route path="/donations/new" element={<CreateDonationPage />} />
+                <Route path="/donor" element={<Navigate to="/donor/overview" replace />} />
+                <Route path="/donor/overview" element={<DonorDashboard view="overview" />} />
+                <Route path="/donor/dashboard" element={<Navigate to="/donor/overview" replace />} />
+                <Route path="/donor/donations" element={<DonorDashboard view="donations" />} />
+                <Route path="/donor/donations/new" element={<CreateDonationPage />} />
+                <Route path="/donor/requests" element={<DonorDashboard view="requests" />} />
+                <Route path="/donor/pickups" element={<DonorDashboard view="pickups" />} />
+                <Route path="/donor/analytics" element={<DonorDashboard view="analytics" />} />
+                <Route path="/donor/profile" element={<DonorDashboard view="profile" />} />
               </Route>
+              {/* Backward compatibility for direct /donations/new link */}
+              <Route path="/donations/new" element={<Navigate to="/donor/donations/new" replace />} />
 
               {/* 4. Recipient Organization Workspace Layout */}
               <Route
                 element={
-                  <ProtectedRoute allowedRoles={['RECEIVER', 'ADMIN']}>
-                    <DashboardLayout />
+                  <ProtectedRoute allowedRoles={['RECEIVER']}>
+                    <ReceiverLayout />
                   </ProtectedRoute>
                 }
               >
-                <Route path="/receiver/dashboard" element={<ReceiverDashboard />} />
+                <Route path="/receiver" element={<Navigate to="/receiver/overview" replace />} />
+                <Route path="/receiver/overview" element={<ReceiverDashboard view="overview" />} />
+                <Route path="/receiver/dashboard" element={<Navigate to="/receiver/overview" replace />} />
+                <Route path="/receiver/discover" element={<DiscoverPage />} />
+                <Route path="/receiver/requests" element={<ReceiverDashboard view="requests" />} />
+                <Route path="/receiver/pickups" element={<ReceiverDashboard view="pickups" />} />
+                <Route path="/receiver/analytics" element={<ReceiverDashboard view="analytics" />} />
+                <Route path="/receiver/profile" element={<ReceiverDashboard view="profile" />} />
               </Route>
 
               {/* 5. Admin Governance Portal Layout */}
               <Route
                 element={
                   <ProtectedRoute allowedRoles={['ADMIN']}>
-                    <DashboardLayout />
+                    <AdminLayout />
                   </ProtectedRoute>
                 }
               >
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin" element={<Navigate to="/admin/overview" replace />} />
+                <Route path="/admin/overview" element={<AdminDashboard tab="overview" />} />
+                <Route path="/admin/dashboard" element={<Navigate to="/admin/overview" replace />} />
+                <Route path="/admin/verifications" element={<AdminDashboard tab="verification" />} />
+                <Route path="/admin/users" element={<AdminDashboard tab="users" />} />
+                <Route path="/admin/safety-reports" element={<AdminDashboard tab="safety" />} />
+                <Route path="/admin/audit-logs" element={<AdminDashboard tab="audit" />} />
+                <Route path="/admin/analytics" element={<AdminDashboard tab="analytics" />} />
               </Route>
 
-              {/* Fallback Catch-all Route */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              {/* Fallback Catch-all Route with Public Layout */}
+              <Route element={<PublicLayout />}>
+                <Route path="*" element={<NotFoundPage />} />
+              </Route>
             </Routes>
           </React.Suspense>
 

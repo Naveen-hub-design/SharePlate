@@ -133,6 +133,29 @@ def get_my_requests():
         
     return jsonify({"requests": [r.to_dict() for r in requests_list]}), 200
 
+@request_bp.route("/donor", methods=["GET"])
+@jwt_required()
+@role_required("DONOR", "ADMIN")
+def get_donor_requests():
+    """Donor-only incoming requests for their active or past donations."""
+    user_id = int(get_jwt_identity())
+    requests_list = (
+        DonationRequest.query.join(Donation)
+        .filter(Donation.donor_id == user_id)
+        .order_by(DonationRequest.created_at.desc())
+        .all()
+    )
+    return jsonify({"requests": [r.to_dict() for r in requests_list]}), 200
+
+@request_bp.route("/receiver", methods=["GET"])
+@jwt_required()
+@role_required("RECEIVER", "ADMIN")
+def get_receiver_requests():
+    """Receiver-only claims and reservation requests."""
+    user_id = int(get_jwt_identity())
+    requests_list = DonationRequest.query.filter_by(receiver_id=user_id).order_by(DonationRequest.created_at.desc()).all()
+    return jsonify({"requests": [r.to_dict() for r in requests_list]}), 200
+
 @request_bp.route("/<int:request_id>/approve", methods=["POST"])
 @jwt_required()
 @role_required("DONOR", "ADMIN")

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '../types';
 import { authApi } from '../api/client';
+import { authService } from '../services/authService';
 
 interface AuthContextType {
   user: User | null;
@@ -77,8 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    authService.logout();
   };
 
   const isDonor = user?.role === 'DONOR';
