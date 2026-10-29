@@ -19,7 +19,11 @@ def client(app):
     with app.test_client() as test_client:
         with app.app_context():
             # Fast, lock-free delete with FK checks disabled
-            db.session.execute(db.text("SET FOREIGN_KEY_CHECKS = 0;"))
+            is_sqlite = "sqlite" in app.config.get("SQLALCHEMY_DATABASE_URI", "")
+            if is_sqlite:
+                db.session.execute(db.text("PRAGMA foreign_keys = OFF;"))
+            else:
+                db.session.execute(db.text("SET FOREIGN_KEY_CHECKS = 0;"))
             for tbl in [
                 "pickup_records", "donation_requests", "donations",
                 "organization_verification_records", "safety_reports",
@@ -29,7 +33,10 @@ def client(app):
                     db.session.execute(db.text(f"DELETE FROM {tbl};"))
                 except Exception:
                     pass
-            db.session.execute(db.text("SET FOREIGN_KEY_CHECKS = 1;"))
+            if is_sqlite:
+                db.session.execute(db.text("PRAGMA foreign_keys = ON;"))
+            else:
+                db.session.execute(db.text("SET FOREIGN_KEY_CHECKS = 1;"))
             
             # Seed standard accounts
             admin = User(email="admin.test@shareplate.org", full_name="Admin User", role="ADMIN", status="ACTIVE")

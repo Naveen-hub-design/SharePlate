@@ -20,25 +20,39 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_MINUTES", "120")))
     
     # Database config
+    DB_TYPE = os.getenv("DB_TYPE", "sqlite").strip().lower()
+    USE_SQLITE = DB_TYPE == "sqlite" or os.getenv("USE_SQLITE", "").strip().lower() in ("1", "true", "yes") or os.getenv("DATABASE_URL", "").startswith("sqlite")
+    
     DB_USER = os.getenv("DB_USER", "root")
     DB_PASSWORD = os.getenv("DB_PASSWORD", "")
     DB_HOST = os.getenv("DB_HOST", "localhost")
     DB_PORT = os.getenv("DB_PORT", "3306")
     DB_NAME = os.getenv("DB_NAME", "shareplate_db")
-    
     encoded_password = urllib.parse.quote_plus(DB_PASSWORD)
-    
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        f"mysql+pymysql://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
-    )
+
+    if USE_SQLITE:
+        SQLITE_PATH = os.path.abspath(os.path.join(root_dir, "shareplate.db")).replace("\\", "/")
+        env_db_url = os.getenv("DATABASE_URL", "").strip()
+        path_part = env_db_url.replace("sqlite:///", "").replace("sqlite://", "")
+        if env_db_url.startswith("sqlite") and path_part and os.path.isabs(path_part):
+            SQLALCHEMY_DATABASE_URI = env_db_url
+        else:
+            SQLALCHEMY_DATABASE_URI = f"sqlite:///{SQLITE_PATH}"
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "connect_args": {"check_same_thread": False}
+        }
+    else:
+        SQLALCHEMY_DATABASE_URI = os.getenv(
+            "DATABASE_URL",
+            f"mysql+pymysql://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
+        )
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "pool_pre_ping": True,
+            "pool_recycle": 3600,
+            "pool_size": 10,
+            "max_overflow": 20
+        }
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_pre_ping": True,
-        "pool_recycle": 3600,
-        "pool_size": 10,
-        "max_overflow": 20
-    }
     
     # File Storage
     UPLOAD_FOLDER = os.path.join(basedir, os.getenv("UPLOAD_FOLDER", "uploads"))
@@ -59,14 +73,26 @@ class Config:
 
 class TestConfig(Config):
     TESTING = True
-    DB_NAME = os.getenv("TEST_DB_NAME", "shareplate_test_db")
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "TEST_DATABASE_URL",
-        f"mysql+pymysql://{Config.DB_USER}:{Config.encoded_password}@{Config.DB_HOST}:{Config.DB_PORT}/{DB_NAME}?charset=utf8mb4"
-    )
+    if Config.USE_SQLITE:
+        SQLITE_TEST_PATH = os.path.abspath(os.path.join(root_dir, "shareplate_test.db")).replace("\\", "/")
+        env_test_url = os.getenv("TEST_DATABASE_URL", "").strip()
+        test_path_part = env_test_url.replace("sqlite:///", "").replace("sqlite://", "")
+        if env_test_url.startswith("sqlite") and test_path_part and os.path.isabs(test_path_part):
+            SQLALCHEMY_DATABASE_URI = env_test_url
+        else:
+            SQLALCHEMY_DATABASE_URI = f"sqlite:///{SQLITE_TEST_PATH}"
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "connect_args": {"check_same_thread": False}
+        }
+    else:
+        DB_NAME = os.getenv("TEST_DB_NAME", "shareplate_test_db")
+        SQLALCHEMY_DATABASE_URI = os.getenv(
+            "TEST_DATABASE_URL",
+            f"mysql+pymysql://{Config.DB_USER}:{Config.encoded_password}@{Config.DB_HOST}:{Config.DB_PORT}/{DB_NAME}?charset=utf8mb4"
+        )
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "isolation_level": "READ COMMITTED",
+            "pool_pre_ping": True,
+            "pool_recycle": 3600
+        }
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        "isolation_level": "READ COMMITTED",
-        "pool_pre_ping": True,
-        "pool_recycle": 3600
-    }

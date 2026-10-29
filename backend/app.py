@@ -15,6 +15,9 @@ def create_app(config_class=Config):
     
     # Initialize extensions
     db.init_app(app)
+    with app.app_context():
+        import backend.models
+        db.create_all()
     migrate.init_app(app, db)
     jwt.init_app(app)
     

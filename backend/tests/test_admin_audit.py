@@ -26,7 +26,7 @@ def test_admin_suspend_and_block_user(client, auth_tokens):
     # Admin gets user list
     users_res = client.get("/api/v1/admin/users", headers=auth_tokens["admin"])
     assert users_res.status_code == 200
-    donor_user = next(u for u in users_res.json["users"] if u["role"] == "DONOR")
+    donor_user = next(u for u in users_res.json["users"] if u["email"] == "donor.test@shareplate.org")
     
     # Suspend donor
     suspend_res = client.put(

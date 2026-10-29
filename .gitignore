@@ -46,6 +46,9 @@ uploads/
 backend/uploads/
 *.sqlite
 *.sqlite3
+*.db
+instance/
+backend/instance/
 
 # IDE & OS
 .idea/
