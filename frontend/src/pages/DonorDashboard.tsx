@@ -56,25 +56,17 @@ export const DonorDashboard: React.FC<DonorDashboardProps> = ({ view }) => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const donationsRes = await donorService.getMyDonations();
-      const myDonations: Donation[] = donationsRes.donations || [];
-      setDonations(myDonations);
+      const [donationsRes, requestsRes] = await Promise.allSettled([
+        donorService.getMyDonations(),
+        donorService.getIncomingRequests(),
+      ]);
 
-      // Fetch pending & approved requests for all active donations
-      const requestsAccumulator: DonationRequest[] = [];
-      for (const d of myDonations) {
-        if (d.status === 'PUBLISHED' || d.status === 'RESERVED') {
-          try {
-            const reqRes = await donorService.getRequestsForDonation(d.id);
-            if (reqRes.requests) {
-              requestsAccumulator.push(...reqRes.requests);
-            }
-          } catch (e) {
-            // ignore individual donation request error
-          }
-        }
+      if (donationsRes.status === 'fulfilled') {
+        setDonations(donationsRes.value.donations || []);
       }
-      setIncomingRequests(requestsAccumulator);
+      if (requestsRes.status === 'fulfilled') {
+        setIncomingRequests(requestsRes.value.requests || []);
+      }
     } catch (e) {
       console.error(e);
       toast.error('Failed to load dashboard listings.');

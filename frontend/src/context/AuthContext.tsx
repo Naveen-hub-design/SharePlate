@@ -30,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = async () => {
     try {
       const res = await authApi.getMe();
-      if (res.data?.user) {
+      if (res?.data?.user) {
         setUser(res.data.user);
         localStorage.setItem('user', JSON.stringify(res.data.user));
       }

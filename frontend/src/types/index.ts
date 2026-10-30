@@ -18,7 +18,7 @@ export type VerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED' | 'SUSPENDE
 
 export type DonationStatus = 'DRAFT' | 'PUBLISHED' | 'RESERVED' | 'COLLECTED' | 'COMPLETED' | 'WITHDRAWN' | 'EXPIRED';
 
-export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
+export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED' | 'PICKED_UP';
 
 export type FoodCategory = 
   | 'COOKED_MEALS'

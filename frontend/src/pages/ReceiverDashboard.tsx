@@ -92,7 +92,7 @@ export const ReceiverDashboard: React.FC<ReceiverDashboardProps> = ({ view }) =>
 
   const approvedPickups = requests.filter((r) => r.status === 'APPROVED');
   const pendingRequests = requests.filter((r) => r.status === 'PENDING');
-  const completedCollections = requests.filter((r) => r.status === 'COMPLETED');
+  const completedCollections = requests.filter((r) => r.status === 'COMPLETED' || r.status === 'PICKED_UP');
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -178,7 +178,7 @@ export const ReceiverDashboard: React.FC<ReceiverDashboardProps> = ({ view }) =>
               Meals Collected
             </span>
             <p className="text-2xl sm:text-3xl font-extrabold text-stone-900 mt-1 font-heading">
-              {completedCollections.reduce((acc, c) => acc + (c.requested_quantity || 0), 0)}
+              {completedCollections.reduce((acc, c) => acc + (c.requested_quantity || (c as any).requested_portions || 0), 0)}
             </p>
             <p className="text-[11px] text-stone-500 font-semibold mt-1">Portions distributed</p>
           </div>

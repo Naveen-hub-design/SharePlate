@@ -216,7 +216,7 @@ export const CreateDonationPage: React.FC = () => {
           ? 'Surplus listing published! Recipient NGOs have been notified.'
           : 'Donation saved as draft.'
       );
-      navigate('/donor/dashboard');
+      navigate('/donor/donations');
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to save donation.');
     } finally {

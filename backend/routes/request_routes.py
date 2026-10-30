@@ -247,7 +247,7 @@ def reject_request(request_id: int):
     if not user:
         return jsonify({"error": "User not found"}), 404
     
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     reason = data.get("rejection_reason", "Unable to fulfill this request.").strip()
     
     req = db.session.get(DonationRequest, request_id)

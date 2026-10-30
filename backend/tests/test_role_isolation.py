@@ -71,3 +71,61 @@ def test_receiver_role_only_requests_endpoint(client, auth_tokens):
     # Receiver should be permitted
     res_recv = client.get("/api/v1/requests/receiver", headers=auth_tokens["receiver"])
     assert res_recv.status_code == 200
+
+def test_cross_organization_donation_modification_blocked(client, auth_tokens):
+    """Verify Donor B cannot edit or withdraw Donor A's donation listing."""
+    import datetime
+    from backend.utils.time_utils import utc_now
+    now = utc_now()
+    payload = {
+        "title": "Donor A Fresh Meals",
+        "description": "Sealed meals.",
+        "category": "COOKED_MEALS",
+        "quantity": 20,
+        "total_portions": 20,
+        "preparation_time": (now - datetime.timedelta(minutes=30)).isoformat(),
+        "collection_deadline": (now + datetime.timedelta(hours=3)).isoformat(),
+        "storage_conditions": "HOT_HOLD",
+        "status": "PUBLISHED"
+    }
+    create_res = client.post("/api/v1/donations", json=payload, headers=auth_tokens["donor"])
+    assert create_res.status_code == 201
+    don_id = create_res.json["donation"]["id"]
+
+    # Another donor tries to edit
+    edit_res = client.put(f"/api/v1/donations/{don_id}", json={"title": "Unauthorized"}, headers=auth_tokens["unverified_donor"])
+    assert edit_res.status_code == 403
+
+    # Another donor tries to withdraw
+    withdraw_res = client.post(f"/api/v1/donations/{don_id}/withdraw", headers=auth_tokens["unverified_donor"])
+    assert withdraw_res.status_code == 403
+
+def test_cross_organization_request_approval_blocked(client, auth_tokens):
+    """Verify Donor B cannot approve or reject claims on Donor A's donation."""
+    import datetime
+    from backend.utils.time_utils import utc_now
+    now = utc_now()
+    payload = {
+        "title": "Donor A Surplus Bread",
+        "description": "Fresh loaves.",
+        "category": "BAKERY_BREAD",
+        "quantity": 15,
+        "total_portions": 15,
+        "collection_deadline": (now + datetime.timedelta(hours=3)).isoformat(),
+        "storage_conditions": "AMBIENT",
+        "status": "PUBLISHED"
+    }
+    don_res = client.post("/api/v1/donations", json=payload, headers=auth_tokens["donor"])
+    don_id = don_res.json["donation"]["id"]
+
+    claim_res = client.post(f"/api/v1/requests/donations/{don_id}", json={"requested_portions": 5}, headers=auth_tokens["receiver"])
+    assert claim_res.status_code == 201
+    req_id = claim_res.json["request"]["id"]
+
+    # Another donor tries to approve
+    approve_res = client.post(f"/api/v1/requests/{req_id}/approve", headers=auth_tokens["unverified_donor"])
+    assert approve_res.status_code == 403
+
+    # Another donor tries to reject
+    reject_res = client.post(f"/api/v1/requests/{req_id}/reject", headers=auth_tokens["unverified_donor"])
+    assert reject_res.status_code == 403

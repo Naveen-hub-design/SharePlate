@@ -9,7 +9,7 @@ vi.mock('../api/client', () => ({
   authApi: {
     login: vi.fn(),
     register: vi.fn(),
-    getMe: vi.fn(),
+    getMe: vi.fn().mockResolvedValue({ data: { user: null } }),
     updateProfile: vi.fn(),
   },
   apiClient: {
